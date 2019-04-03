@@ -13,4 +13,6 @@
 4. Kiểm tra overload tại server -->
 	a. Nhận kết nối từ client --> kiểm tra overload --> nếu overload thì hủy kết nối
 
+5. CheckIllegal
+
  
