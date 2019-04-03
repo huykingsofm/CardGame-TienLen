@@ -1,0 +1,16 @@
+﻿1. Dừng server --> xử lý tại server
+	a. Kiểm tra có nghe được với client hay không --> hủy hàm serveMulticlient
+	b. Xóa đi tất cả các socket hiện tại đang có với client
+	c. 	
+
+2. Dừng server --> xử lý tại client
+	a. (Xử lý thời gian thực) Tạo 1 thread kiểm tra liên tục server, nếu server không phản hồi thì gửi tín hiệu(ví dụ: messagebox,..) tới 	main thread.
+	b. (Xử lý theo lượt) Nếu bất kì lời gửi/nhận nào bị lỗi, thông báo ngưng client
+
+3. Client dừng đột ngột -->
+	a. Kiểm tra có gửi/nhận dữ liệu từ client được hay không --> đóng socket đang giao tiếp với client đó.
+
+4. Kiểm tra overload tại server -->
+	a. Nhận kết nối từ client --> kiểm tra overload --> nếu overload thì hủy kết nối
+
+ 
