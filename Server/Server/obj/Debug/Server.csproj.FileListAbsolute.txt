@@ -1,0 +1,16 @@
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen-master\Server\Server\bin\Debug\Server.exe.config
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen-master\Server\Server\bin\Debug\Server.exe
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen-master\Server\Server\bin\Debug\Server.pdb
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen-master\Server\Server\obj\Debug\Server.csprojAssemblyReference.cache
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen-master\Server\Server\obj\Debug\Server.Properties.Resources.resources
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen-master\Server\Server\obj\Debug\Server.csproj.GenerateResource.cache
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen-master\Server\Server\obj\Debug\Server.csproj.CoreCompileInputs.cache
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen-master\Server\Server\obj\Debug\Server.exe
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen-master\Server\Server\obj\Debug\Server.pdb
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\Server\obj\Debug\Server.csprojAssemblyReference.cache
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\Server\obj\Debug\Server.exe.config
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\Server\obj\Debug\Server.Properties.Resources.resources
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\Server\obj\Debug\Server.csproj.GenerateResource.cache
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\Server\obj\Debug\Server.csproj.CoreCompileInputs.cache
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\Server\obj\Debug\Server.exe
+D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\Server\obj\Debug\Server.pdb
