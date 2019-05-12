@@ -11,8 +11,8 @@ namespace client {
     public class TcpClientModel {
         static ASCIIEncoding encoding = new ASCIIEncoding();
         static int MAX_BUFFER_SIZE = 1024;
-        static int SERVER_PORT = 8080;
-        static String SERVER_IP = "127.0.0.1";
+        static int SERVER_PORT = 409;
+        static String SERVER_IP = "192.168.137.132";
 
         private TcpClient _tcpClient;
         private Stream _stream;
@@ -36,7 +36,7 @@ namespace client {
 
         public int SendRequest(String req) {
             try {
-                byte[] bytesSend = encoding.GetBytes(req);
+                byte[] bytesSend = encoding.GetBytes(req + "|");
                 this._stream.Write(bytesSend, 0, bytesSend.Length);
 
                 return 1; //Success
