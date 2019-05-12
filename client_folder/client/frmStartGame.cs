@@ -164,6 +164,9 @@ namespace client {
         private void frmStartGame_Load(object sender, EventArgs e) {
             CheckForIllegalCrossThreadCalls = false;
 
+            Thread th = new Thread(this.StartHandleReponses);
+            th.Start();
+
             lblWelcome.Visible = false;
             pBar.Maximum = MAX_PERCENT;
 
