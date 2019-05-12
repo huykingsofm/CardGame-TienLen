@@ -51,11 +51,16 @@ namespace client {
         }
 
         public static Message GetMessage() {
-            if(_queue.Count() == 0) {
+            try {
+                if (_queue.Count() == 0) {
+                    return null;
+                }
+
+                return _queue.Dequeue();
+            } catch(Exception ex) {
+                Console.WriteLine("GetMessage error:" + ex.StackTrace);
                 return null;
             }
-
-            return _queue.Dequeue();
         }
     }
 }
