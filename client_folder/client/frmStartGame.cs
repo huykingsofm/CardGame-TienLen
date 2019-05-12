@@ -249,7 +249,11 @@ namespace client {
                 String password = txtPassword.Text;
                 String password2 = txtPassword2.Text;
 
-                String req = RequestFormat.SIGN_UP(username, password, password2);
+                if(password != password2) {
+                    throw new Exception("Passwords not match");
+                }
+
+                String req = RequestFormat.SIGN_UP(username, password);
 
                 this._client.SendRequest(req);
                 String res = this._client.ReceiveResponse();
@@ -258,8 +262,7 @@ namespace client {
                     frm.ShowDialog();
                 }
             } catch (Exception ex) {
-                Console.WriteLine("btnLoginSubmit_Click error: " + ex.StackTrace);
-                Console.WriteLine("btnLoginSubmit_Click error: " + ex.StackTrace);
+                Console.WriteLine("btnSignUpSubmit_Click error: " + ex.StackTrace);
                 MessageBox.Show(
                     ex.Message,
                     "Exception",
