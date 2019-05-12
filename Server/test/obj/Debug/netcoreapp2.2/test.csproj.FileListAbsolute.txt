@@ -1,0 +1,11 @@
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\bin\Debug\netcoreapp2.2\test.deps.json
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\bin\Debug\netcoreapp2.2\test.runtimeconfig.json
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\bin\Debug\netcoreapp2.2\test.runtimeconfig.dev.json
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\bin\Debug\netcoreapp2.2\test.dll
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\bin\Debug\netcoreapp2.2\test.pdb
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\obj\Debug\netcoreapp2.2\test.csprojAssemblyReference.cache
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\obj\Debug\netcoreapp2.2\test.csproj.CoreCompileInputs.cache
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\obj\Debug\netcoreapp2.2\test.AssemblyInfoInputs.cache
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\obj\Debug\netcoreapp2.2\test.AssemblyInfo.cs
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\obj\Debug\netcoreapp2.2\test.dll
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\test\obj\Debug\netcoreapp2.2\test.pdb

@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace Server
 {
@@ -14,9 +15,18 @@ namespace Server
         [STAThread]
         static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            OutdoorSession outdoor = new OutdoorSession();
+            outdoor.Start();
+            bool stop = false;
+            while(stop == false){
+                string str = Console.ReadLine();
+                switch(str){
+                    case "Close":
+                        outdoor.Destroy();
+                        stop = true;
+                        break;
+                }    
+            }
         }
     }
 }

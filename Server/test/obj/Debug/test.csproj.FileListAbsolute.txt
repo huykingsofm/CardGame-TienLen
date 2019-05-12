@@ -1,7 +1,0 @@
-D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\test\bin\Debug\test.exe.config
-D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\test\bin\Debug\test.exe
-D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\test\bin\Debug\test.pdb
-D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\test\obj\Debug\test.csprojAssemblyReference.cache
-D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\test\obj\Debug\test.csproj.CoreCompileInputs.cache
-D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\test\obj\Debug\test.exe
-D:\1_UNIVERSITY\_SEMESTER 4\4_Lập trình Mạng\Cuối kỳ\CardGame-TienLen\Server\test\obj\Debug\test.pdb

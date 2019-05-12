@@ -8,12 +8,11 @@ namespace test
 {
     class Program
     {
+        static public readonly char SPLIT_MESSAGE_CHAR = '|';
         static void Main(string[] args)
         {
-            Class2.Class1 c = new Class2.Class1();
-            c.n = 1;
-            Class2 c2 = null;
-            int a = c2.n1;
+            Class1 c = new Class1();
+            c.In();
         }
     }
 }

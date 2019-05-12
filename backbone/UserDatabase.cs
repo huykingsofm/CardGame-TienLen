@@ -7,43 +7,32 @@
 class UserDatabase : Database {
     public class User{
         // Sử dụng : UserDatabase.User = new ....
-        internal public bool authenticate; //public only in this file
+        internal public bool authenticated; //public only in this file
         internal public string username; //public only in this file
         internal public float money; //public only in this file
-
+        
+        static List<User> InActive;
+        static User Administator;
         //### CONSTRUCTOR
-        public User(){
+        internal User(){
             this.username = null;
-            this.authenticate = false;
             this.money = -1;
-        }
-        public User(string username){
-            this.username = username;
-            this.authenticate = false;
-        }
-
-        public bool IsAuthenticated(){
-            return this.authenticate;
-        }
-
-        public bool Authorize_(string pass){
-            return (UserDatabase.Authorize(this.username, pass) == true);
-        }
-
-        public bool Authenticate_(string pass){
-            if this.Authorize(pass) == true{
-                this.authenticate = true;
-                return true;
-            }
-            return false;
+            this.authenticated = false;
         }
 
         public bool ChangeMoney(float additionMoney){
-            return UserDatabase.ChangeMoney(this, additionMoney);
+            if (this.authenticated)
+                return UserDatabase.ChangeMoney(this, additionMoney);
         }
 
         public bool ChangePass(string oldPass, string newPass){
-            return UserDatabase.ChangePass(this, oldPass, newPass);
+            if (this.authenticated)
+                return UserDatabase.ChangePass(this, oldPass, newPass);
+        }
+
+        public User GetInfoAnotherUser(string username){
+            if (this.authenticated)
+                return UserDatabase.GetInfo(username);
         }
     }
 
@@ -55,11 +44,7 @@ class UserDatabase : Database {
     }
 
     // ### METHOD
-    private bool IsValidUserName(string username){
-        // Kiểm tra tên người dùng có hợp lệ hay không?
-    }
-
-    public bool IsExist(string username){
+    public bool IsExist(User user, string username){
         // Kiểm tra username có tồn tại hay không?
     }
 
@@ -68,11 +53,16 @@ class UserDatabase : Database {
         return true/false;
     }
 
+    public bool Authorize(User user, string pass){
+        return this.Authorize(user.username, pass);
+    }
+
     public User GetInfo(string username){
         // Lấy thông tin *username + money* của một user, nhưng ko cấp quyền cho người đó
         // Trả về user và thông tin nếu có tồn tại, nếu không trả về null hoặc thông báo lỗi
         if (this.IsExist(username) == true){
-            User user = new User(username);
+            User user = new User();
+            user.username = username;
             user.money = this.Find<tiền>(username); // hàm của Database/MongoDatabase
         }
         return null;
@@ -86,6 +76,10 @@ class UserDatabase : Database {
             user.authenticate = True; 
         }
         return user;
+    }
+
+    public void Authenticate(ref User user, string pass){
+        user.authenticated = this.Authorize(user, pass);
     }
 
     public bool AddToDatabase(string username, string rawPasswd, float money){

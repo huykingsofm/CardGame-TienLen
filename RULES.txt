@@ -1,0 +1,6 @@
+﻿1 - tên EXEPTION : bắt đầu với E_
+
+2 - kết thúc gói tin : ký tự |
+
+3 - Công thức gói tin : "Tên_gói:Tham_số_1,Tham_số_2,...|" 
+	hoặc "Tên_gói|"
