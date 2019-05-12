@@ -18,7 +18,7 @@ namespace client {
         public static String[] HEARTS = { "0_0", "0_0", "0_0", "3_4", "4_4", "5_4", "6_4", "7_4",
                           "8_4", "9_4", "10_4", "11_4", "12_4", "13_4", "14_4", "15_4" };
         public static String SIGN_UP(String uname, String pass) {
-            return "Singup:" + uname + "," + pass;
+            return "Signup:" + uname + "," + pass;
         }
         public static String LOG_IN(String uname, String pass) {
             return "Login:" + uname + "," + pass;

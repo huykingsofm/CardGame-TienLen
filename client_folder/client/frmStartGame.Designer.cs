@@ -177,7 +177,7 @@
             this.btnLoginSubmit.Location = new System.Drawing.Point(170, 240);
             this.btnLoginSubmit.Name = "btnLoginSubmit";
             this.btnLoginSubmit.Size = new System.Drawing.Size(176, 27);
-            this.btnLoginSubmit.TabIndex = 11;
+            this.btnLoginSubmit.TabIndex = 10;
             this.btnLoginSubmit.Text = "Log In";
             this.btnLoginSubmit.UseVisualStyleBackColor = false;
             this.btnLoginSubmit.Click += new System.EventHandler(this.btnLoginSubmit_Click);
@@ -195,7 +195,7 @@
             this.lblWelcome.Location = new System.Drawing.Point(140, 270);
             this.lblWelcome.Name = "lblWelcome";
             this.lblWelcome.Size = new System.Drawing.Size(231, 80);
-            this.lblWelcome.TabIndex = 13;
+            this.lblWelcome.TabIndex = 11;
             this.lblWelcome.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // frmStartGame

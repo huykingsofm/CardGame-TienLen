@@ -121,5 +121,11 @@
   <ItemGroup>
     <None Include="imgs\start-game.gif" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="imgs\duymanh.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="imgs\casino.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

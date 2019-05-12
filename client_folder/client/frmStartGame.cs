@@ -110,7 +110,7 @@ namespace client {
 
         private void HandleResponse(Object obj) {
             Message message = (Message)obj;
-            Console.WriteLine("HandleResponse: " + message);
+            Console.WriteLine("From start game, handleResponse: " + message);
             
             switch(message.name) {
                 case "Success":
@@ -118,8 +118,8 @@ namespace client {
                         break;
                     }
                     if(message.args[0] == "Login") {
-                        //this.Hide();
                         this.isStop = true;
+                        this.Hide();
 
                         frmLobby frm = new frmLobby(this._client);
                         frm.ShowDialog();
@@ -152,8 +152,9 @@ namespace client {
                 Message m = MessageQueue.GetMessage();
                 if (m == null) continue;
 
-                Thread th = new Thread(this.HandleResponse);
-                th.Start(m);
+                //Thread th = new Thread(this.HandleResponse);
+                //th.Start(m);
+                this.HandleResponse(m);
             }
         }
 
@@ -255,11 +256,11 @@ namespace client {
                 String req = RequestFormat.SIGN_UP(username, password);
 
                 this._client.SendRequest(req);
-                String res = this._client.ReceiveResponse();
-                if (res != null) {
-                    frmLobby frm = new frmLobby(this._client);
-                    frm.ShowDialog();
-                }
+                //String res = this._client.ReceiveResponse();
+                //if (res != null) {
+                //    frmLobby frm = new frmLobby(this._client);
+                //    frm.ShowDialog();
+                //}
             } catch (Exception ex) {
                 Console.WriteLine("btnSignUpSubmit_Click error: " + ex.StackTrace);
                 MessageBox.Show(
