@@ -14,8 +14,9 @@ namespace Server{
             this.clients = new List<ClientSession>();
             this.rooms = new RoomSession[MAX_ROOM];
             this.outdoor = outdoor;
+            
             for (int i = 0; i < this.rooms.Count(); i++){
-                this.rooms[i] = new RoomSession(lobby);
+                this.rooms[i] = new RoomSession(lobby, i);
                 this.rooms[i].Start();
             }
         }
@@ -29,6 +30,9 @@ namespace Server{
                 return false;
             }
 
+            if (this.clients.Contains(client))
+                throw new Exception("Client has been existed in server");
+
             lock(this.clients){
                 this.clients.Add(client);    
             }
@@ -36,21 +40,20 @@ namespace Server{
             return true;
         }
         public bool Join(ClientSession client, RoomSession room){
-            int IndexClient = this.FindClient(client);
-            int IndexRoom = this.FindRoom(room);
+            int IndexClient = this.FindClientIndex(client);
+            int IndexRoom = this.FindRoomIndex(room);
 
             if (IndexClient == -1 || IndexRoom == -1)
                 return false;
-                
+            
+            if (this.clients[IndexClient].Join(this.rooms[IndexRoom]) == false)
+                throw new Exception("The room is full of client");        
                 
             lock(this.clients){
                 if (this.clients.Remove(this.clients[IndexClient]) == false)
-                    throw new Exception("The user has not existed in lobby");
+                    throw new Exception("Error in server, fix bugs now");
             }
-            
-            if (this.clients[IndexClient].Join(this.rooms[IndexRoom]) == false)
-                throw new Exception("Error in server, fix bugs now");
-    
+
             return true;
         }
         public void Pop(ClientSession client){
@@ -62,7 +65,7 @@ namespace Server{
             if (client.Join(this.outdoor) == false)
                 throw new Exception("Error in server, need to fix bugs");    
         }
-        public int FindRoom(int id){
+        public int FindRoomIndex(int id){
             lock(this.rooms){
                 for (int i = 0; i < this.rooms.Count(); i++)
                     if (this.rooms[i].id == id)
@@ -70,11 +73,11 @@ namespace Server{
             }
             return -1;
         }
-        public int FindRoom(RoomSession room){
+        public int FindRoomIndex(RoomSession room){
             int id = room.id;
-            return this.FindRoom(id);
+            return this.FindRoomIndex(id);
         }
-        public int FindClient(int id){
+        public int FindClientIndex(int id){
             lock(this.clients){
                 for (int i = 0; i < this.clients.Count(); i++)
                     if (this.clients[i].id == id)
@@ -83,13 +86,13 @@ namespace Server{
 
             return -1;
         }
-        public int FindClient(ClientSession client){
+        public int FindClientIndex(ClientSession client){
             int id = client.id;
-            return this.FindClient(id);
+            return this.FindClientIndex(id);
         }
 
-        public RoomSession GetRoom(int id){
-            int index = this.FindRoom(id);
+        public RoomSession GetRoomById(int id){
+            int index = this.FindRoomIndex(id);
             if (index == -1)
                 return null;
             
@@ -97,13 +100,32 @@ namespace Server{
                 return this.rooms[index];
         }
 
-        public ClientSession GetClient(int id){
-            int index = this.FindClient(id);
+        public ClientSession GetClientById(int id){
+            int index = this.FindClientIndex(id);
             if (index == -1)
                 return null;
             
             lock(this.clients)
                 return this.clients[index];
+        }
+
+        public ClientSession GetClientByIndex(int index){
+            lock (this.clients)
+            try{
+                return this.clients[index];
+            }
+            catch{
+                return null;
+            }
+        }
+        public RoomSession GetRoomByIndex(int index){
+            lock(this.rooms)
+                try{
+                    return this.rooms[index];
+                }
+                catch{
+                    return null;
+                }
         }
 
         public override string ToString(){

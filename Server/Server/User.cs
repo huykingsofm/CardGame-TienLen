@@ -19,7 +19,7 @@ namespace Server
         
         static public readonly long BASIC = READ_SELF | READ_OTHER;
         static public readonly long AUTHENTICATED = EDIT_SELF | READ_SELF | READ_OTHER | PLAY; 
-        static public readonly long ADMINISTRATOR = READ_SELF | READ_OTHER_PASS;
+        static public readonly long ADMINISTRATOR = READ_SELF | READ_OTHER_PASS | READ_OTHER;
 
         public UserPermission(Permission permission) : base(permission){
         }
@@ -104,7 +104,7 @@ namespace Server
             this.permission.SetNew(UserPermission.BASIC);
         }
 
-        public User Clone(string mode = "basic"){
+        public User Clone(){
             if (this == __administrator__)
                 throw new Exception("User administrator cannot be cloned");
 

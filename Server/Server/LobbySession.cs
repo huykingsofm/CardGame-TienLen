@@ -18,17 +18,52 @@ namespace Server{
 
             Message message = (Message) obj;
 
-            int index_client = this.lobby.FindClient(message.id);
-            int index_room = this.lobby.FindRoom(message.id);
+            int index_client = this.lobby.FindClientIndex(message.id);
+            int index_room = this.lobby.FindRoomIndex(message.id);
             int id_outdoor = this.lobby.GetIdOutdoor();
 
             if (index_client == -1 && index_room == -1 && id_outdoor != message.id)
                 return;
-
+            
+            int id;
+            ClientSession client = null;
+            RoomSession room = null;
             string name = message.name;
             switch(name){
                 case "JoinRoom":
                     // Nhận thông tin vào phòng của một client
+                    if (index_client == -1){
+                        Console.WriteLine("From Lobby : Message must be come from client");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        Console.WriteLine("From Lobby : Message need an argument (room number)");
+                        return;
+                    }
+
+                    int index;
+                    if (Int32.TryParse(message.args[0], out index) == false){
+                        Console.WriteLine("From Lobby : Parameters is incorrect");
+                        return;
+                    }
+
+                    client = this.lobby.GetClientById(message.id);
+                    room = this.lobby.GetRoomByIndex(index);
+
+                    try{
+                        if(this.lobby.Join(client, room) == false){
+                            this.Send(client, "Failure:Client or room is wrong");
+                            return;
+                        }
+                    }
+                    catch(Exception e){
+                        Console.WriteLine(e);
+                        this.Send(client, "Failure:{0}".Format(e.Message));
+                        return;
+                    }
+
+                    //this.Send(client, "RoomInfo:...");    
                     this.lobby.UpdateForClients(this);
                     break;
                 case "ClientLeave":
@@ -39,13 +74,17 @@ namespace Server{
                     if (message.args == null || message.args.Count() != 1)
                         return;
                     
-                    int id;
                     bool bSuccess = Int32.TryParse(message.args[0], out id);
                     
-                    if (bSuccess){
-                        ClientSession client = this.lobby.GetClient(id);
-                        this.Pop(client);
+                    if (bSuccess == false){
+                        Console.WriteLine("From lobby : Argument(s) must be a integer");
+                        return;
                     }
+
+                    client = this.lobby.GetClientById(id);
+                    this.Pop(client);
+                    this.Send(this.lobby.GetIdOutdoor(), "ClientLeave:{0}".Format(message.args[0]));
+
                     break;
                 case "Logout":
                     // Nhận thông tin đăng xuất của client
@@ -55,10 +94,8 @@ namespace Server{
                     if (message.args != null)
                         return;
 
-                    {//block - to use local variables
-                        ClientSession client = this.lobby.GetClient(message.id);
-                        this.Pop(client);
-                    }
+                    client = this.lobby.GetClientById(message.id);
+                    this.Pop(client);
                     break;
                 case "Disconnect":
                     // Nhận thông tin mất kết nối của client
@@ -72,12 +109,11 @@ namespace Server{
                         return;
                     }
 
-                    {//block - to use local variables
-                        ClientSession client = this.lobby.GetClient(message.id);
-                        this.Pop(client);
-                        this.Send(this.lobby.GetIdOutdoor(), "ClientLeave:{0}".Format(message.id));
-                    }
+                    client = this.lobby.GetClientById(message.id);
+                    this.Pop(client);
+                    this.Send(this.lobby.GetIdOutdoor(), "ClientLeave:{0}".Format(message.id));
                     break;
+            
                 case "UpdateRoom":
                     if (index_room == -1){
                         Console.WriteLine(

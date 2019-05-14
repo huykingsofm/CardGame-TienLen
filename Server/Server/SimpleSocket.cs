@@ -29,7 +29,8 @@ namespace Server {
 
             if (str == "")
                 return null;
-
+            
+            Console.WriteLine("From {0} : {1}".Format(this.socket.RemoteEndPoint, str));
             return str;
         }
 

@@ -183,7 +183,25 @@ namespace Server{
                     if (this.game != null)
                         this.Send(this.game, "Disconnect");
                     break;
+                case "Success":
+                    this.client.Send(message.MessageOnly());
+                    break;
+                case "Failure":
+                    this.client.Send(message.MessageOnly());
+                    break;
+                case "JoinRoom":
+                    if (this.lobby == null){
+                        this.client.Send("Failure:You must be in lobby to join room");
+                        return;
+                    }
 
+                    if (message.args == null || message.args.Count() != 1){
+                        Console.WriteLine("From Client {0} : Message must have an argument");
+                        return;
+                    }
+
+                    this.Send(this.lobby, message.MessageOnly());
+                    break;
                 default:
                     this.client.Send("Warning:Cannot identify message!");
                     break;
@@ -236,19 +254,18 @@ namespace Server{
                 return null;
             }
 
-            this.client.Send("Successfully:Login");
+            this.client.Send("Success:Login");
             this.Send(this.outdoor, "JoinLobby");
             this.user = tmp;
             return null;
         }
         private object Singup(string username, string pass){
-            User admin = User.__administrator__;
             try{
                 UserCollection.__default__.AddToDatabase(
-                    admin,              // representation 
+                    User.__administrator__,              // representation 
                     username,       
                     pass,               
-                    1);                 // init money
+                    1);                                 // init money
             }
             catch(Exception e){
                 string M = "Failure:" + e.Message;
@@ -257,7 +274,7 @@ namespace Server{
             }
 
             // Gửi về thông báo đã đăng ký thành công với tên tài khoản đã đăng ký
-            this.client.Send("Successfully:Signup,{0}".Format(username));
+            this.client.Send("Success:Signup,{0}".Format(username));
             return true;
         }
         private object Logout(){
@@ -267,7 +284,7 @@ namespace Server{
             }
 
             this.user.Destroy();
-            this.client.Send("Successfully:Logout");
+            this.client.Send("Success:Logout");
             this.user = null;
             return true;
         }
@@ -284,7 +301,7 @@ namespace Server{
         }
         public bool Join(RoomSession room){
             bool bSuccess = room.Add(this);
-            
+            this.Send(this, "Success:JoinRoom,{0}".Format(room.index));
             if (bSuccess){
                 this.room = room;
                 this.lobby = null;

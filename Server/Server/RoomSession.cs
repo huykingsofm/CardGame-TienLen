@@ -8,16 +8,24 @@ namespace Server{
     public class RoomSession : Session{
         Room room;
         public override string Name => "Room";
-        public RoomSession(LobbySession lobby) : base(){
-            this.room = new Room(lobby);
+        public int index{get; private set;}
+        public RoomSession(LobbySession lobby, int index) : base(){
+            this.room = new Room(lobby, index);
+            this.index = index;
         }
         public override void Solve(object obj){
             /* 
             # Loại bỏ các message không hợp lệ
             # Chỉ xử lý các client đang trong phòng
             */
-
             Message message  = (Message) obj;
+            int lobbyid = this.room.GetLobbyId();
+            int index_client = this.room.FindIndexById(message.id);
+
+            if (index_client == -1 && message.id != lobbyid){
+                Console.WriteLine("From room : Can not identify message");
+                return;
+            }
 
             string name = message.name;
             switch(name){
@@ -50,6 +58,21 @@ namespace Server{
                     */
                     break;
                 case "SetBetMoney":
+                    break;
+                case "Disconnect":
+                    if (index_client == -1){
+                        Console.WriteLine("From room : Message need come from client");
+                        return;
+                    }
+
+                    if (message.args != null){
+                        Console.WriteLine("From room : Message dont need any parameters");
+                        return;
+                    }
+
+                    this.room.PopById(message.id);
+                    this.Send(lobbyid, "ClientLeave:{0}".Format(message.id));
+                    this.Send(lobbyid, "UpdateRoom");
                     break;
                 default:
                     break;                

@@ -13,6 +13,7 @@ namespace Server{
         private GameSession game;
         private LobbySession lobby;
         private bool StopThreadCheckGame;
+        public int index{get; private set;}
         private int[] ClientStatus; /*  
                                     #    0 - không trong phòng
                                     #    1 - có trong phòng nhưng chưa sẵn sàng
@@ -27,25 +28,26 @@ namespace Server{
                                     #    0 - Phòng không chơi
                                     #    1 - Phòng đang chơi
                                     */
-        public Room(LobbySession lobby){
+        public Room(LobbySession lobby, int index){
             this.count = 0;
             this.host = -1;
             this.BetMoney = 0;
             this.game = null;
+            this.index = index;
             this.ClientStatus = new int[]{0, 0, 0, 0}; // NOT_IN_ROOM
             this.RoomStatus = 0;
             this.clients = new ClientSession[]{null, null, null, null};
             this.lobby = lobby;
         }
 
-        public int Find(ClientSession client){
+        public int FindIndex(ClientSession client){
             for (int i = 0; i < this.clients.Count(); i++)
                 if (this.clients[i] == client && 
                     this.ClientStatus[i] != Room.PLAYING)
                     return i;
             return -1;
         }
-        public int Find(int id){
+        public int FindIndexById(int id){
             for (int i = 0; i < this.clients.Count(); i++)
                 if (this.clients[i].id == id && 
                     this.ClientStatus[i] != Room.PLAYING)
@@ -54,6 +56,9 @@ namespace Server{
         }
 
         public bool Add(ClientSession client){
+            if (this.FindIndex(client) != -1)
+                throw new Exception("User has been in this room");
+
             for (int i = 0; i < this.clients.Count(); i++)
                 if (this.ClientStatus[i] == Room.NOT_IN_ROOM){
                     this.clients[i] = client;
@@ -61,7 +66,7 @@ namespace Server{
                     
                     if (this.host == -1)
                         this.host = i;
-                   
+                    this.count++;
                     return true;
                 }
             return false;
@@ -86,34 +91,34 @@ namespace Server{
                     }
                 }
 
-                if(client.Join(this.lobby))
+                if(client.Join(this.lobby) == false)
                     throw new Exception("Error in server, fix bugs now");
-
+                this.count -= 1;
                 return true;
             }
             throw new Exception("The client[{0}] is not existed in room".Format(index));
         }
 
         public bool Pop(ClientSession client){
-            int index = this.Find(client);
+            int index = this.FindIndex(client);
             if (index != -1)
                 return this.Pop(index);
             return false;
         }
         public bool PopById(int id){
-            int index = this.Find(id);
+            int index = this.FindIndexById(id);
             if (index != -1)
                 return this.Pop(index);
             return false;
         }
 
-        protected void Ready(int index){
+        protected void ReadyByIndex(int index){
             this.ClientStatus[index] = Room.READY;
         }
         public bool Ready(ClientSession client){
-            int index = this.Find(client);
+            int index = this.FindIndex(client);
             try{
-                this.Ready(index);
+                this.ReadyByIndex(index);
             }
             catch{
                 return false;
@@ -121,22 +126,22 @@ namespace Server{
             return true;
         }
         public bool ReadyById(int id){
-            int index = this.Find(id);
+            int index = this.FindIndexById(id);
             try{
-                this.Ready(index);
+                this.ReadyByIndex(index);
             }
             catch{
                 return false;
             }
             return true;
         }
-        protected void UnReady(int index){
+        protected void UnReadyByIndex(int index){
             this.ClientStatus[index] = Room.NOT_READY;
         }
         public bool UnReady(ClientSession client){
-            int index = this.Find(client);
+            int index = this.FindIndex(client);
             try{
-                this.UnReady(index);
+                this.UnReadyByIndex(index);
             }
             catch{
                 return false;
@@ -144,9 +149,9 @@ namespace Server{
             return true;
         }
         public bool UnReadyById(int id){
-            int index = this.Find(id);
+            int index = this.FindIndexById(id);
             try{
-                this.Ready(index);
+                this.ReadyByIndex(index);
             }
             catch{
                 return false;
@@ -205,6 +210,10 @@ namespace Server{
         public override string ToString(){
             return "{0},{1}".Format(this.count, this.BetMoney);
         } 
+
+        public int GetLobbyId(){
+            return this.lobby.id;
+        }
 
     }
 }
