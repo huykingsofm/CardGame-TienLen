@@ -25,21 +25,28 @@ namespace Server
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine("From TcpServer : ", e);
                 return -1;
             }
 
         }
         public SimpleSocket AcceptSimpleSocket()
         {
+            Thread.Sleep(this.timeout);
+
             SimpleSocket socket = null;
             if (this.Pending())
-                socket = new SimpleSocket(this.AcceptSocket());
-            else
-                Thread.Sleep(this.timeout);
+                try {
+                    socket = new SimpleSocket(this.AcceptSocket());
+                }
+                catch (Exception e) {
+                    Console.WriteLine("From Server : ", e.Message);
+                    return null;
+                }
 
             if (socket != null)
                 Console.WriteLine(socket);
+                
             return socket;
         }
     }

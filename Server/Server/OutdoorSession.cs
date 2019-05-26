@@ -1,188 +1,144 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
+using System.IO;
+using System.Json;
 
 namespace Server{
     public class OutdoorSession : Session{
-        TcpServer server;
-        List<ClientSession> clients;
-        LobbySession lobby;
-        Thread OutdoorThread;
-        bool OutdoorStop;
-        public override string Name => "Outdoor";
+        /*
+         * Mục đích : Tạo một Session đại diện cho outdoor - khiến outdoor có thể tự phản
+         *            .. ứng nhanh với một vài sự kiện xảy ra.
+         * Thuộc tính : 
+         *      + outdoor        : chứa outdoor mà nó đại diện.
+         *      + clientsessions : mảng chứa các clientsession đại diện cho các client 
+         *                         .. bên trong outdoor.
+         *      + lobbysession   : chứa lobbysession đại diện cho lobby trong outdoor.
+         * Khởi tạo :
+         *      + OutdoorSession()  : Không thể truy cập trực tiếp.
+         *      + static Create()   : Tạo một đối tượng outdoorsession, nếu không thể tạo,
+         *                            .. trả về null.
+         * Phương thức :
+         *      + Solve(Message)        : Giải quyết một message khi được nhận từ các session khác.
+         *      + Add(ClientSession)    : Thêm một ClientSession.
+         *      + Remove(ClientSession) : Loại bỏ một ClientSession.
+         *      + Và các phương thức được kế thừa từ lớp Session. Xem Session để biết thêm chi tiết.
+         */
+        private Outdoor outdoor;
+        private ClientSession[] clientsessions;
+        private LobbySession lobbysession;
+        public override string Name => "OutdoorSession";
 
-        public OutdoorSession() : base(){
-            this.server = new TcpServer("192.168.137.132", 0409);
-            this.server.Listen();
-            this.lobby = new LobbySession(this);
-            this.lobby.Start();
-            this.clients = new List<ClientSession>();
-            this.OutdoorThread = null;
-            this.OutdoorStop = false;
+        private OutdoorSession() : base(){
+            this.outdoor = Outdoor.Create();
+            this.lobbysession = LobbySession.Create(this.outdoor.lobby, this);
+            this.lobbysession.Start();
+
+            this.clientsessions= new ClientSession[Outdoor.MAX_CLIENT];
+
+            for (int i = 0; i < this.clientsessions.Count(); i++)
+                this.clientsessions[i] = null;
         }
-
-        public void WaitForNewClient(){
-            this.OutdoorStop = false;
-            while (this.OutdoorStop == false){
-                SimpleSocket s = this.server.AcceptSimpleSocket();
-                
-                if (s == null)
-                    continue;
-
-                ClientSession client;
-                try{
-                    client = new ClientSession(s, this);
-                }
-                catch(Exception e){
-                    s.Send("Failure:{0}".Format(e.Message));
-                    s.Close();   
-                    continue;
-                }
-
-                this.clients.Add(client);
-                client.Start();
+        public static OutdoorSession Create(){
+            OutdoorSession outdoorsession;
+            try{
+                outdoorsession = new OutdoorSession();
             }
+            catch(Exception e){
+                Console.WriteLine(e);
+                return null;
+            }
+
+            return outdoorsession;
         }
         public override void Solve(object obj){
             Message message = (Message) obj;
-            int index = this.Find(message.id);
 
-            if (this.lobby.id == message.id)
-                index = Int32.MaxValue;
-
-            if (index == -1){
-                Console.WriteLine("From {0} {1} : Cannot identify message".Format(this.Name, this.id));
+            if (
+                this.clientsessions.FindById(message.id) == -1 
+                && message.id != this.lobbysession.id
+            ){
+                this.WriteLine("Cannot identify message");
                 return;
             }
 
             switch(message.name){
-                case "ClientLeave":
-                    /* 
-                    # Nhận thông tin hủy đi một client từ lobby, gọi hàm client.Destroy
-                    */
-                    if (index != Int32.MaxValue)
-                        return;
-                        
-                    if (message.args == null || message.args.Count() != 1){
-                        Console.WriteLine("From Outdoor : Cannot solve {0}".Format(message));
-                        return;
-                    }
-                    int id;
-                    try{
-                        id = Int32.Parse(message.args[0]);
-                    }
-                    catch{
-                        Console.WriteLine("From Outdoor : Cannot solve {0}".Format(message));
-                        return;
-                    }
-
-                    index = this.Find(id);
-                    if (index == -1){
-                        Console.WriteLine("Client do not exist");
-                        return;
-                    }
-
-                    this.Pop(this.clients[index]);
-                    break;
-                case "JoinLobby":
+                case "JoinLobby":{
                     /*
                     # Nhận thông tin vào một lobby của một client
                     # Điều kiện là client phải được xác thực
                     */
-                    if (index == Int32.MaxValue)
-                        return;
-
-                    if (this.clients[index].IsAuthenticated() == false){
-                        this.Send(this.clients[index], "Failure:Please log in before");
+                    int index = this.clientsessions.FindById(message.id);
+                    if (index == -1){
+                        this.WriteLine("JoinLobby must come from Client");
                         return;
                     }
-                    
-                    bool bSuccess = this.clients[index].Join(this.lobby);
-                    
-                    if (bSuccess)
-                        this.clients.Remove(this.clients[index]);
-                    else
-                        this.Send(this.clients[index], "Failure:Cannot join lobby");
-                    
+
+                    if (this.outdoor.clients[index].IsLogin() == false){
+                        this.Send(this.clientsessions[index], "Failure:JoinLobby,Please log in before");
+                        return;
+                    }
+
+                    try{
+                        this.lobbysession.Add(this.clientsessions[index]);
+                        this.clientsessions[index].Join(this.lobbysession);
+                        this.Remove(this.clientsessions[index]);
+                    }
+                    catch(Exception e){
+                        this.WriteLine(e.Message);
+                        this.Send(this.clientsessions[index], "Failure:JoinLobby,Cannot join lobby");
+                        return;
+                    }
                     break;
-                case "Disconnect":
+                }
+                case "Disconnect":{
                     /*
                     # Nhận thông tin tự đăng xuất của client
                     */
-                    if (message.which != "Client")
+                    if (this.clientsessions.FindById(message.id) == -1){
+                        this.WriteLine("Disconnect must be come from Client");
                         return;
+                    }
 
-                    this.Pop(message.id);
+                    try{
+                        int index = this.clientsessions.FindById(message.id);
+                        this.clientsessions[index].Destroy();
+                        this.Remove(this.clientsessions[index]);
+                    }
+                    catch (Exception e){
+                        this.WriteLine(e.Message);
+                        return;
+                    }
                     break;
+                }
                 default:
-                    Console.WriteLine("From {0} {1} : Cannot identify message".Format(this.Name, this.id));
+                    this.WriteLine("Cannot identify message");
                     break;
             }
         }
-
-        public override void Start(){
-            if (this.OutdoorThread != null)
-                throw new Exception("You has called Start() method before");
-            
-            this.OutdoorThread = new Thread(this.WaitForNewClient);
-            this.OutdoorThread.Start();
-            base.Start();
-        }
-
-        public override void Stop(string mode = "normal"){
-            if (this.OutdoorThread == null)
-                throw new Exception("It must call Start() method before call Stop()");
-
-            this.OutdoorStop = true;
-            Thread.Sleep(100);
-            while(this.OutdoorThread.IsAlive){
-                Console.WriteLine("Wait for stopping {0} {1}".Format(this.Name, this.id));
-                Thread.Sleep(100);
+        public void Add( ClientSession clientsession){
+            if (clientsession.client.IsAlive() == false){
+                clientsession.Destroy();
+                return;
             }
-
-            this.OutdoorThread = null;
-            base.Stop(mode);
+            int index = this.outdoor.Add(clientsession.client);
+            this.clientsessions[index] = clientsession;
+        }
+        public void Remove(ClientSession clientsession){
+            int index = this.outdoor.Remove(clientsession.client);
+            this.clientsessions[index] = null;
         }
         public override void Destroy(string mode = "normal"){
-            this.lobby.Destroy();
+            this.lobbysession.Destroy(mode);
+            
+            foreach(var clientsession in this.clientsessions)
+                if (clientsession != null)
+                    clientsession.Destroy(mode);
+
             base.Destroy(mode);
-        }
-        public int Find(int id){
-            lock(this.clients){
-                for (int i = 0; i < this.clients.Count(); i++)
-                    if (this.clients[i].id == id)
-                        return i;
-            }
-            return -1;
-        }
-        public bool Add(ClientSession client){
-            if(this.Find(client.id) != -1)
-                return false;
-
-            lock(this.clients){
-                this.clients.Add(client);
-            }
-
-            return true;
-        }
-        public bool Pop(int id){
-            int index = this.Find(id);
-            this.clients[index].Destroy();
-            
-            lock(this.clients){
-                this.clients.Remove(this.clients[index]);
-            }
-            
-            return false;
-        }
-
-        public bool Pop(ClientSession client){
-            bool bSuccess = this.clients.Remove(client);
-            if (bSuccess)
-                client.Destroy();
-            return bSuccess;
         }
     }
 }

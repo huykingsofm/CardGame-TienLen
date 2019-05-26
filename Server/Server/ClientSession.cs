@@ -5,40 +5,77 @@ using System.Threading.Tasks;
 using System.Threading;
 
 namespace Server{
-    sealed public class ClientSession : Session{
+    public class ClientSession : Session{
         /* 
-        # Mục đích : Đảm nhận luồng xử lý khi một client kết nối với server
-        # Các thuộc tính : ClientSession chứa socket đang giữ kết nối với client,
-        #                  .. đồng thời giữ các thông tin của một client như user, 
-        #                  .. room, lobby, ...
-        # Hoạt động đặc biệt : Điểm đặc biệt của ClientSession là
-        #                    .. ngoài nhận thông điệp từ các session khác, nó còn nhận
-        #                    .. thông điệp từ máy client đang điều khiển nó.
-        */
-        private SimpleSocket client;
-        private User user;
-        private Thread ClientThread;
-        private bool ClientStop;
-        public override string Name => "Client";
-        private LobbySession lobby;
-        private RoomSession room;
-        private GameSession game;
-        private OutdoorSession outdoor;
-        public ClientSession(SimpleSocket socket, OutdoorSession outdoor) : base(){
-            this.client = socket;
-            this.ClientThread = null;
-            this.user = null;
-            this.ClientStop = false;
-            this.outdoor = outdoor;
-            this.lobby = null;
-            this.room = null;
-            this.game = null;
+         * Mục đích : Đại diện một Client dưới dạng một thực thể phản ứng nhanh.
+         * Thuộc tính : 
+         *      + client        : chứa client mà nó đại diện.
+         *      + thread        : chứa thông tin của luồng nhận dữ liệu từ client.
+         *      + stop          : hỗ trợ duy trì hoặc dùng luồng nhận dữ liệu từ client.
+         *      + lobbysession  : chứa lobbysession nếu client đang ở lobby.
+         *      + outdoorsession: chứa outdoorsession nếu client đang ở outdoor.
+         *      + roomsession   : chứa roomsession nếu client đang ở room.
+         *      + gamesession   : chứa gamesession nếu client đang chơi game.
+         * 
+         * Khởi tạo : 
+         *      + ClientSession(Client, OutdoorSession) : Không được truy cập trực tiếp.
+         *      + Create(Client, OutdoorSession)        : Khởi tạo một đối tượng đang ở outdooor.
+         * Phương thức :
+         *      + ReceiveFromClient()   : Tiếp nhận dữ liệu từ client.
+         *      + Solve(Message)        : Xem chi tiết ở lớp Session.
+         *      + Start()               : Xem chi tiết ở lớp Session.
+         *      + Stop()                : Xem chi tiết ở lớp Session.
+         *      + Destroy()             : Xem chi tiết ở lớp Session.
+         *      + Login(string, string) : Hỗ trợ đăng nhập.
+         *      + Logout()              : Hỗ trợ đăng xuất.
+         *      + Signup(string, string): Hỗ trợ đăng ký.
+         *      + Join(...)             : Thay đổi trạng thái vị trí của client.                 
+         */
+
+        // ######### THUỘC TÍNH #############
+        public Client client;
+        private Thread thread;
+        private bool stop;
+        public override string Name => "ClientSession";
+        private LobbySession lobbysession;
+        private RoomSession roomsession;
+        private GameSession gamesession;
+        private OutdoorSession outdoorsession;
+
+        //############# KHỞI TẠO ##################
+        protected ClientSession(Client client, OutdoorSession outdoorsession) : base(){
+            if (client == null || outdoorsession == null)
+                throw new Exception("Client and OutdoorSession can be null instances");
+            
+            this.client = client;
+            this.thread = null;
+            this.stop = false;
+
+            this.outdoorsession = outdoorsession;
+            this.lobbysession = null;
+            this.roomsession = null;
+            this.gamesession = null;
         }
+        public static ClientSession Create(Client client, OutdoorSession outdoorsession){
+            ClientSession clientsession = null;
+            try{
+                clientsession = new ClientSession(client, outdoorsession);
+            }
+            catch(Exception e){
+                Console.WriteLine(e);
+                return null;
+            }
+            return clientsession;
+        }        
+        
+        //############ PHƯƠNG THỨC ################
         private void ReceiveFromClient(){
             string last_message = null;
 
-            while(this.ClientStop == false){
+            while(this.stop == false){
                 string all_message = this.client.Receive();
+
+                Thread.Sleep(50);
                 
                 if (all_message == null){
                     this.Send(this, "Disconnect");
@@ -72,30 +109,29 @@ namespace Server{
         }
         public override void Solve(Object obj){
             Message message = (Message) obj;
-            string name = message.name;
             
             bool bValid = false;
             if (this.id == message.id)
                 bValid = true;
             
-            if (this.lobby != null && this.lobby.id == message.id)
+            if (this.lobbysession != null && this.lobbysession.id == message.id)
                 bValid = true;
 
-            if (this.room != null && this.room.id == message.id)
+            if (this.roomsession != null && this.roomsession.id == message.id)
                 bValid = true;
 
-            if (this.game != null && this.game.id == message.id)
+            if (this.gamesession != null && this.gamesession.id == message.id)
                 bValid = true;
 
-            if (this.outdoor != null && this.outdoor.id == message.id)
+            if (this.outdoorsession != null && this.outdoorsession.id == message.id)
                 bValid = true;
 
             if (bValid == false){
-                this.client.Send("Warning:Cannot identify message!");
+                this.WriteLine("Cannot identify message!");
                 return;
             }
 
-            switch (name)
+            switch (message.name)
             {
                 case "Login":
                     /*
@@ -106,14 +142,18 @@ namespace Server{
                     #             .. + thông tin lobby
                     #             Nếu không có quyền thông báo thất bại  
                     */
-                    if (this.user != null){
-                        this.client.Send("Failure:You have already logged in!");
+                    if (this.id != message.id){
+                        this.WriteLine("Message must come from client");
                         return;
                     }
 
-                    if (message.args == null || message.args.Count() != 2 || 
-                    this.id != message.id){
-                        this.client.Send("Warning:Cannot identify message!");
+                    if (this.client.IsLogin()){
+                        this.client.Send("Failure:Login,You have already logged in!");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 2){
+                        this.WriteLine("Message need two parameters");
                         return;
                     }
 
@@ -125,9 +165,13 @@ namespace Server{
                     # Nhận thông tin đăng ký từ client
                     # Hành động : Cố gắng đăng ký, gửi thông báo
                     */
-                    if (this.id != message.id || message.args == null || 
-                    message.args.Count() != 2){
-                        this.client.Send("Warning:Cannot identify message!");
+                    if (this.id != message.id){
+                        this.WriteLine("Message must come from client");
+                        return;
+                    }
+
+                    if( message.args == null || message.args.Count() != 2){
+                        this.WriteLine("Message need two parameters");
                         return;
                     }
 
@@ -135,128 +179,292 @@ namespace Server{
                     break;
 
                 case "Logout":
-                    if (message.args != null || this.id != message.id){
-                        this.client.Send("Warning:Cannot identify message!");
+                    if (message.id != this.id){
+                        this.WriteLine("Message must come from client");
                         return;
                     }
-                    this.Logout();
-                    if (this.lobby != null)
-                        this.Send(this.lobby, "Logout");
-                    if (this.room != null)
-                        this.Send(this.room, "Logout");
-                    if (this.game != null)
-                        this.Send(this.game, "Logout");
+
+                    if (message.args != null || this.id != message.id){
+                        this.WriteLine("Message dont need any parameters");
+                        return;
+                    }
+                    
+                    if (this.lobbysession != null)
+                        this.Send(this.lobbysession, "Logout");
+                    if (this.roomsession != null)
+                        this.Send(this.roomsession, "Logout");
+                    if (this.gamesession != null)
+                        this.Send(this.gamesession, "Logout");
                     break;
 
                 case "LobbyInfo":
-                    if (this.lobby == null || message.which != this.lobby.Name){
+                    if (this.lobbysession == null || message.which != this.lobbysession.Name){
                         // Nếu message không đến từ lobby hoặc client không ở lobby
-                        Console.WriteLine("{0}:Error in sender".Format(message));
+                        this.WriteLine("Message must come from lobby");
                         return;
                     }
 
                     if (message.args == null){
-                        Console.WriteLine("{0}:Error in parameters".Format(message));
+                        this.WriteLine("Error in parameters");
                         return;
                     }
 
                     int n;
                     if (Int32.TryParse(message.args[0], out n) == false){
-                        Console.WriteLine("{0}:Error in parameters".Format(message));
+                        this.WriteLine("Error in parameters");
                         return;
                     }
                     
                     if (n * 2 != message.args.Count() - 1){
-                        Console.WriteLine("{0}:Error in parameters".Format(message));
+                        this.WriteLine("Error in parameters");
                         return;
                     }
                     
                     this.client.Send(message.MessageOnly());
                     break;
-                case "Disconnect":
-                    if (this.outdoor != null)
-                        this.Send(this.outdoor, "Disconnect");
-                    if (this.lobby != null)
-                        this.Send(this.lobby, "Disconnect");
-                    if (this.room != null)
-                        this.Send(this.room, "Disconnect");
-                    if (this.game != null)
-                        this.Send(this.game, "Disconnect");
-                    break;
-                case "Success":
+
+                case "RoomInfo":{
+                    if (message.id != this.roomsession.id){
+                        this.WriteLine("Message must come from Room");
+                        return;
+                    }
+                
+                    if (message.args == null || message.args.Count() != 14){
+                        this.WriteLine("Message must have 14 arguments but {0}", message.args.Count());
+                        return;
+                    }
+
                     this.client.Send(message.MessageOnly());
                     break;
-                case "Failure":
+                }
+                case "GameInfo":{
+                    if (message.id != this.gamesession.id){
+                        this.WriteLine("Message must come from Game");
+                        return;
+                    }
+                
+                    if (message.args == null){
+                        this.WriteLine("Message must have many arguments");
+                        return;
+                    }
+
                     this.client.Send(message.MessageOnly());
                     break;
-                case "JoinRoom":
-                    if (this.lobby == null){
-                        this.client.Send("Failure:You must be in lobby to join room");
+                }
+                case "Disconnect":{
+                    if (message.id != this.id){
+                        this.WriteLine("Disconnect must come from itself");
+                        return;
+                    }
+
+                    if (this.outdoorsession != null)
+                        this.Send(this.outdoorsession, "Disconnect");
+                    if (this.lobbysession != null)
+                        this.Send(this.lobbysession, "Disconnect");
+                    if (this.roomsession != null)
+                        this.Send(this.roomsession, "Disconnect");
+                    if (this.gamesession != null)
+                        this.Send(this.gamesession, "Disconnect");
+                    break;
+                }
+                case "Success":{
+                    if (this.id == message.id){
+                        this.WriteLine("This message can not come from client");
+                        return;
+                    }
+
+                    this.client.Send(message.MessageOnly());
+                    break;
+                }
+                case "Failure":{
+                    if (this.id == message.id){
+                        this.WriteLine("This message can not come from client");
+                        return;
+                    }
+
+                    this.client.Send(message.MessageOnly());
+                    break;
+                }
+                case "JoinRoom":{
+                    if (this.id != message.id){
+                        this.WriteLine("Message must come from client(socket)");
+                        return;
+                    }
+                    if (this.lobbysession == null){
+                        this.client.Send("Failure:JoinRoom,You must be in lobby to join room");
                         return;
                     }
 
                     if (message.args == null || message.args.Count() != 1){
-                        Console.WriteLine("From Client {0} : Message must have an argument");
+                        this.WriteLine("Message must have an argument");
                         return;
                     }
 
-                    this.Send(this.lobby, message.MessageOnly());
+                    this.Send(this.lobbysession, message.MessageOnly());
                     break;
-                default:
-                    this.client.Send("Warning:Cannot identify message!");
+                }
+                case "JoinLobby":{
+                    if (this.id != message.id){
+                        this.WriteLine("Message must come from client");
+                        return;
+                    }
+
+                    if (message.args != null){
+                        this.WriteLine("Message must not constain any argument");
+                        return;
+                    }
+
+                    if (this.roomsession == null){
+                        this.client.Send("Failure:JoinLobby,You must be in room before send this message");
+                        return;
+                    }
+
+                    this.Send(this.roomsession, "JoinLobby");
                     break;
+                }
+
+                case "Payin":{
+                    if (this.id != message.id){
+                        this.WriteLine("Message must be come from Client");
+                        return;
+                    }
+
+                    if (this.lobbysession == null){
+                        this.client.Send("Failure:Payin,You must in lobby");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("This message need a parameter");
+                        return;
+                    }
+
+                    this.Send(this.lobbysession, message.MessageOnly());
+                    break;
+                }
+
+                case "Ready":{
+                    if (this.id != message.id){
+                        this.WriteLine("Message must come from client");
+                        return;
+                    }
+
+                    if (message.args != null){
+                        this.WriteLine("Message must not constain any argument");
+                        return;
+                    }
+
+                    if (this.roomsession == null){
+                        this.client.Send("Failure:Ready,You must be in room before send this message");
+                        return;
+                    }
+
+                    this.Send(this.roomsession, "Ready");
+                    break;
+                }
+
+                case "UnReady":{
+                    if (this.id != message.id){
+                        this.WriteLine("Message must come from client");
+                        return;
+                    }
+
+                    if (message.args != null){
+                        this.WriteLine("Message must not constain any argument");
+                        return;
+                    }
+
+                    if (this.roomsession == null){
+                        this.client.Send("Failure:UnReady,You must be in room before send this message");
+                        return;
+                    }
+
+                    this.Send(this.roomsession, "UnReady");
+                    break;
+                }
+
+                case "Start":{
+                    if (this.id != message.id){
+                        this.WriteLine("Message must come from client");
+                        return;
+                    }
+
+                    if (message.args != null){
+                        this.WriteLine("Message must not constain any argument");
+                        return;
+                    }
+
+                    if (this.roomsession == null){
+                        this.client.Send("Failure:Start,You must be in room before send this message");
+                        return;
+                    }
+
+                    this.Send(this.roomsession, "Start");
+                    break;
+                }
+                case "BetMoney":{
+                    if (this.id != message.id){
+                        this.WriteLine("Message must come from client");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("Message must constain an argument");
+                        return;
+                    }
+
+                    if (this.roomsession == null){
+                        this.client.Send("Failure:BetMoney,You must be in room before send this message");
+                        return;
+                    }
+
+                    this.Send(this.roomsession, message.MessageOnly());
+                    break;
+                }
+                default:{
+                    this.WriteLine("Cannot identify message!");
+                    break;
+                }
             }
         }
         public override void Start(){
             base.Start();
-            this.ClientStop = false;
-            this.ClientThread = new Thread(this.ReceiveFromClient);
-            this.ClientThread.Start();
+            this.stop = false;
+            this.thread = new Thread(this.ReceiveFromClient);
+            this.thread.Start();
        }
         public override void Stop(string mode = "normal"){
-            this.ClientStop = true;
+            if (this.thread == null)
+                return;
+
+            this.stop = true;
 
             Thread.Sleep(100);
-            while(this.ClientThread.IsAlive) {
-                Console.WriteLine("Wait for threads Client {0}".Format(this.id));
+            while(this.thread.IsAlive) {
+                this.WriteLine("Wait for threads");
                 Thread.Sleep(1000);
             }
-            this.ClientThread = null;
+            this.thread = null;
 
             base.Stop(mode);
         }
         public override void Destroy(string mode = "normal"){
-            this.Logout();
-            
-            this.client.Close();
-            this.client = null;
-
+            this.client.Disconnect();
             base.Destroy(mode);
         }
-        public bool IsAuthenticated(){
-            if (this.user == null)
-                return false;
-
-            if (this.user.HavePermission(UserPermission.AUTHENTICATED))
-                return true;
-            return false;
-        }
         private object Login(string username, string pass){        
-            User tmp = new User();
-
             try{
-                tmp.Authenticate(username, pass);
+                this.client.Login(username, pass);
             }
             catch (Exception e){
-                Console.WriteLine(e.Message);
-                string m = "Failure:" + e.Message;
+                this.WriteLine(e.Message);
+                string m = "Failure:Login," + e.Message;
                 this.client.Send(m);
                 return null;
             }
 
-            this.client.Send("Success:Login");
-            this.Send(this.outdoor, "JoinLobby");
-            this.user = tmp;
+            this.client.Send("Success:Login,{0},{1}".Format(this.client.user.username, this.client.user.money));
+            this.Send(this.outdoorsession, "JoinLobby");
             return null;
         }
         private object Singup(string username, string pass){
@@ -268,7 +476,7 @@ namespace Server{
                     1);                                 // init money
             }
             catch(Exception e){
-                string M = "Failure:" + e.Message;
+                string M = "Failure:Signup" + e.Message;
                 this.client.Send(M);
                 return null;
             }
@@ -277,55 +485,48 @@ namespace Server{
             this.client.Send("Success:Signup,{0}".Format(username));
             return true;
         }
-        private object Logout(){
-            if (this.user == null){
-                this.client.Send("Failure:You have not logged in yet");
+        public object Logout(){
+            try{
+                this.client.Logout();
+            }
+            catch(Exception e){
+                this.WriteLine(e.Message);
                 return null;
             }
-
-            this.user.Destroy();
             this.client.Send("Success:Logout");
-            this.user = null;
             return true;
         }
-        public bool Join(LobbySession lobby){
-            bool bSuccess = lobby.Add(this);
-            
-            if (bSuccess){
-                this.lobby = lobby;
-                this.room = null;
-                this.game = null;
-                this.outdoor = null;
-            }
-            return bSuccess;
+        public void Join(LobbySession lobby){
+            this.lobbysession = lobby;
+            this.roomsession = null;
+            this.gamesession = null;
+            this.outdoorsession = null;
         }
-        public bool Join(RoomSession room){
-            bool bSuccess = room.Add(this);
-            this.Send(this, "Success:JoinRoom,{0}".Format(room.index));
-            if (bSuccess){
-                this.room = room;
-                this.lobby = null;
-                this.game = null;
-                this.outdoor = null;
-            }
-            return bSuccess;
+        public void Join(RoomSession room){
+            this.roomsession = room;
+            this.lobbysession = null;
+            this.gamesession = null;
+            this.outdoorsession = null;
         }
+        public void Join(OutdoorSession outdoor){
+            this.roomsession = null;
+            this.lobbysession = null;
+            this.gamesession = null;
+            this.outdoorsession = outdoor;
+        }
+        public void Join(GameSession gamesession){
+            if (this.roomsession == null)
+                throw new Exception("User must be in room to start game");
+                
+            this.lobbysession = null;
+            this.gamesession = gamesession;
+            this.outdoorsession = null;
+        }
+        public User GetUser(){
+            if (this.client.IsLogin() == false)
+                return null;
 
-        public bool Join(OutdoorSession outdoor){
-            bool bSuccess = outdoor.Add(this);
-            
-            if (bSuccess){
-                this.room = null;
-                this.lobby = null;
-                this.game = null;
-                this.outdoor = outdoor;
-            }
-            return bSuccess;
+            return this.client.user.Clone();
         }
-
-        public bool IsAlive(){
-            return this.client != null;
-        }
-
     }
 }

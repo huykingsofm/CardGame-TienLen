@@ -148,8 +148,8 @@ namespace Server
             this.username = username;
             this.Authenticate(pass);
         }
-        public void ChangeMoney(int additionMoney){
-            UserCollection.__default__.ChangeMoney(this, this.username, additionMoney);
+        public int ChangeMoney(int additionMoney){
+            return UserCollection.__default__.ChangeMoney(this, this.username, additionMoney);
         }
         public void ChangePass(string oldPass, string newPass){
 

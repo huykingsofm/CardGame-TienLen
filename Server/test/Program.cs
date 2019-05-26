@@ -11,8 +11,11 @@ namespace test
         static public readonly char SPLIT_MESSAGE_CHAR = '|';
         static void Main(string[] args)
         {
-            Class1 c = new Class1();
-            c.In();
+            int[] a = new int[]{1, 2, 3};
+            int[] b = (int[])a.Clone();
+            b[1] = 4;
+            foreach(var x in b)
+                Console.WriteLine(x);
         }
     }
 }

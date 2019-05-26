@@ -1,0 +1,9 @@
+[1 Client]
+Login:huykingsofm,ANTN2019 --> fail
+Signup:huykingsofm,ANTN2019 --> fail
+
+Login:huykingsofm,ANTN2017 --> enter room
+JoinRoom:1  --> Enter room 1
+JoinRoom:2  --> fail
+JoinLobby:3 --> fail
+JoinLobby   --> leave room, enter lobby 

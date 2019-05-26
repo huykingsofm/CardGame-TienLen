@@ -1,14 +1,15 @@
 {
   "runtimeTarget": {
     "name": ".NETCoreApp,Version=v2.2",
-    "signature": "dbb5eeda7541f9bcd1a6b971131a2f7d8b0b8ace"
+    "signature": "60939398dc68d244be8b3fc76562d40aeb29dd0f"
   },
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v2.2": {
       "Server/1.0.0": {
         "dependencies": {
-          "MongoDB.Driver": "2.8.0"
+          "MongoDB.Driver": "2.8.0",
+          "System.Json": "4.5.0"
         },
         "runtime": {
           "Server.dll": {}
@@ -428,6 +429,14 @@
       "System.IO.FileSystem.Primitives/4.3.0": {
         "dependencies": {
           "System.Runtime": "4.3.0"
+        }
+      },
+      "System.Json/4.5.0": {
+        "runtime": {
+          "lib/netstandard2.0/System.Json.dll": {
+            "assemblyVersion": "2.0.6.0",
+            "fileVersion": "4.6.26515.6"
+          }
         }
       },
       "System.Linq/4.3.0": {
@@ -1213,6 +1222,13 @@
       "sha512": "sha512-6QOb2XFLch7bEc4lIcJH49nJN2HV+OC3fHDgsLVsBVBk3Y4hFAnOBGzJ2lUu7CyDDFo9IBWkSsnbkT6IBwwiMw==",
       "path": "system.io.filesystem.primitives/4.3.0",
       "hashPath": "system.io.filesystem.primitives.4.3.0.nupkg.sha512"
+    },
+    "System.Json/4.5.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-qa/n31qUQ1qEACgCCHVU20BEvkGQtIlOANSjn9TjmRnxDl/KSYrRzTS83iOuCSr/37BfueFSXHobhZhNUksqVQ==",
+      "path": "system.json/4.5.0",
+      "hashPath": "system.json.4.5.0.nupkg.sha512"
     },
     "System.Linq/4.3.0": {
       "type": "package",

@@ -5,16 +5,37 @@ using System.Threading.Tasks;
 using System.Threading;
 
 namespace Server{
-    class Room : Object{
-        public int count{get; private set;}
+    public class Room : Thing{
+        /*
+         * Mục đích : Một lớp hỗ trợ xử lý client khi đã vào phòng.
+         * Thuộc tính : 
+         *      + host          : Chỉ số của chủ phòng.
+         *      + BetMoney      : Tiền cược.
+         *      + clients[]     : Các client đang trong phòng.
+         *      + game          : Đại diện cho game được chơi trong phòng.
+         *      + lobby         : Lưu trữ lobby đang kết nối với room.
+         *      + PlayerStatus  : Lưu trữ trạng thái của các client trong phòng.
+         * Khởi tạo : 
+         *      + Room(Lobby)   : Không thể truy cập trực tiếp.
+         *      + Create(Lobby) : Tạo ra một Room với Lobby chỉ định.
+         * Phương thức :
+         *      + Add(Client)    : Thêm một client vào phòng.
+         *      + Remove(Client) : Loại bỏ client ra khỏi phòng.
+         *      + Destroy()      : Đẩy các client ra khỏi phòng.
+         *      + StartGame()    : Bắt đầu một game.
+         *      + GeneralInfo()  : Lấy thông tin tổng quát của phòng(số lượng người + tiền cược).
+         *      + Ready(Client)  : Thực hiện thay đổi trạng thái của client thành ready.
+         *      + UnReady(Client): Thực hiện thay đổi trang thái của client thành unready.
+         *      + ToString(int)  : Trả về thông tin của phòng dưới góc nhìn của một người chơi.
+         */
+        public override string Name => "Room";
         public int host{get; private set;}
+        public int lastwinner{get; private set;}
         public int BetMoney{get; private set;}
-        private ClientSession[] clients;
-        private GameSession game;
-        private LobbySession lobby;
-        private bool StopThreadCheckGame;
-        public int index{get; private set;}
-        private int[] ClientStatus; /*  
+        private Client[] clients;
+        private Game game;
+        private Lobby lobby;
+        private int[] PlayerStatus; /*  
                                     #    0 - không trong phòng
                                     #    1 - có trong phòng nhưng chưa sẵn sàng
                                     #    2 - có trong phòng và đã sẵn sàng
@@ -24,196 +45,162 @@ namespace Server{
         private static int NOT_READY = 1;
         private static int READY = 2;
         private static int PLAYING = 3;
-        private int RoomStatus;     /*
-                                    #    0 - Phòng không chơi
-                                    #    1 - Phòng đang chơi
-                                    */
-        public Room(LobbySession lobby, int index){
-            this.count = 0;
+        protected Room(Lobby lobby){
+            if (lobby == null)
+                throw new Exception("Lobby can not be a null instances");
+
             this.host = -1;
+            this.lastwinner = -1;
             this.BetMoney = 0;
             this.game = null;
-            this.index = index;
-            this.ClientStatus = new int[]{0, 0, 0, 0}; // NOT_IN_ROOM
-            this.RoomStatus = 0;
-            this.clients = new ClientSession[]{null, null, null, null};
+            this.PlayerStatus = new int[]{0, 0, 0, 0}; // NOT_IN_ROOM
+            this.clients = new Client[]{null, null, null, null};
             this.lobby = lobby;
         }
-
-        public int FindIndex(ClientSession client){
-            for (int i = 0; i < this.clients.Count(); i++)
-                if (this.clients[i] == client && 
-                    this.ClientStatus[i] != Room.PLAYING)
-                    return i;
-            return -1;
+        public static Room Create(Lobby lobby){
+            Room room = null;
+            
+            try{
+                room = new Room(lobby);
+            }
+            catch(Exception e){
+                Console.WriteLine(e);
+                return null;
+            }
+            
+            return room;
         }
-        public int FindIndexById(int id){
-            for (int i = 0; i < this.clients.Count(); i++)
-                if (this.clients[i].id == id && 
-                    this.ClientStatus[i] != Room.PLAYING)
-                    return i;
-            return -1;
-        }
+        public int Add(Client player){
+            if (player ==  null)
+                throw new Exception("Player can not be a null instance");
 
-        public bool Add(ClientSession client){
-            if (this.FindIndex(client) != -1)
+            if (this.clients.Where(player) != -1)
                 throw new Exception("User has been in this room");
 
-            for (int i = 0; i < this.clients.Count(); i++)
-                if (this.ClientStatus[i] == Room.NOT_IN_ROOM){
-                    this.clients[i] = client;
-                    this.ClientStatus[i] = Room.NOT_READY;
-                    
-                    if (this.host == -1)
-                        this.host = i;
-                    this.count++;
-                    return true;
-                }
-            return false;
-        }
+            lock(this.clients){
+                int index = this.clients.Where(null);
+                if (index == -1)
+                    throw new Exception("Room is full");
 
-        protected bool Pop(int index){
-            if (this.clients[index] != null){
-                ClientSession client = this.clients[index];
+                this.clients[index] = player;
+                this.PlayerStatus[index] = Room.NOT_READY;
+                
+                this.host = this.host == -1 ? index : this.host;
+
+                return index;
+            }
+        }
+        public int Remove(Client player){
+            if (player == null)
+                throw new Exception("Player can not be a null instance");
+
+            int index = this.clients.Where(player);
+            if (index == -1)
+                throw new Exception("Player do not exist in room");
+
+            lock(this.clients){
                 this.clients[index] = null;
-                this.ClientStatus[index] = NOT_IN_ROOM;
+                this.PlayerStatus[index] = Room.NOT_IN_ROOM;
 
-                if (index == this.host){
-                    this.host = -1;
-                    
-                    // Tìm host mới
-                    lock(this.clients){
-                        for (int i = 0; i < this.clients.Count(); i++)
-                            if (this.clients[i] != null){
-                                this.host = i;
-                                break;
-                            }
+                this.host = this.host == index ? -1 : this.host;
+                this.lastwinner = this.lastwinner == index ? -1 : this.lastwinner;
+
+                if (this.host == -1)
+                    for (int add = 0; add < this.clients.Count(); add++){
+                        int i = (index + add) % this.clients.Count();
+                        if (this.clients[i] != null){
+                            this.host = i;
+                            break;
+                        }
                     }
-                }
+                
+            }
+            
+            return index;
+        }
+        public void Ready(Client player){
+            int index = this.clients.Where(player);
+            
+            if (index < 0 || index >= this.clients.Count() || this.clients[index] == null)
+                throw new Exception("Player[{0}] do not exist in room");
+            
+            this.PlayerStatus[index] = Room.READY;
+        }
+        public void SetBetMoney(Client client, int betmoney){
+            int index = this.clients.Where(client);
 
-                if(client.Join(this.lobby) == false)
-                    throw new Exception("Error in server, fix bugs now");
-                this.count -= 1;
-                return true;
-            }
-            throw new Exception("The client[{0}] is not existed in room".Format(index));
-        }
+            if (index != this.host)
+                throw new Exception("Only host can adjust betmoney");
 
-        public bool Pop(ClientSession client){
-            int index = this.FindIndex(client);
-            if (index != -1)
-                return this.Pop(index);
-            return false;
-        }
-        public bool PopById(int id){
-            int index = this.FindIndexById(id);
-            if (index != -1)
-                return this.Pop(index);
-            return false;
-        }
+            if (betmoney < 0)
+                throw new Exception("Bet money must be positive number");
+            
+            if (betmoney > 1e6)
+                throw new Exception("Bet money is too big");
 
-        protected void ReadyByIndex(int index){
-            this.ClientStatus[index] = Room.READY;
+            this.BetMoney = betmoney;
         }
-        public bool Ready(ClientSession client){
-            int index = this.FindIndex(client);
-            try{
-                this.ReadyByIndex(index);
-            }
-            catch{
-                return false;
-            }
-            return true;
+        public void UnReady(Client player){
+            int index = this.clients.Where(player);
+            
+            if (index < 0 || index >= this.clients.Count() || this.clients[index] == null)
+                throw new Exception("Player[{0}] do not exist in room");
+            this.PlayerStatus[index] = Room.NOT_READY;
         }
-        public bool ReadyById(int id){
-            int index = this.FindIndexById(id);
-            try{
-                this.ReadyByIndex(index);
-            }
-            catch{
-                return false;
-            }
-            return true;
-        }
-        protected void UnReadyByIndex(int index){
-            this.ClientStatus[index] = Room.NOT_READY;
-        }
-        public bool UnReady(ClientSession client){
-            int index = this.FindIndex(client);
-            try{
-                this.UnReadyByIndex(index);
-            }
-            catch{
-                return false;
-            }
-            return true;
-        }
-        public bool UnReadyById(int id){
-            int index = this.FindIndexById(id);
-            try{
-                this.ReadyByIndex(index);
-            }
-            catch{
-                return false;
-            }
-            return true;
-        }
-    
-        private void CheckEndGame(){
-            this.StopThreadCheckGame = false;
-            while(this.game.IsEnd() == false || this.StopThreadCheckGame == false);
-            // do something
-            this.game.WriteLog();
-            this.game = null;
-        }
-        public bool StartGame(){
-            if (this.count < 2)
-                return false;
+        public Game StartGame(){
+            if (this.clients.CountRealInstance() < 2)
+                throw new Exception("It need at least 2 player to start game");
 
             lock(this.clients){
                 for (int i = 0; i < this.clients.Count(); i++)
-                    if (this.clients[i] != null && this.ClientStatus[i] != Room.READY)
-                        return false;
-
-                this.game = GameSession.Create(this.clients, this.BetMoney, this.host);
+                    if (this.clients[i] != null && this.PlayerStatus[i] != Room.READY)
+                        throw new Exception("Someone hasn't been ready yet");
                 
-                if (game == null)
-                    return false;
-
+                this.game = Game.Create(this.clients, this.lastwinner);
+                
                 for (int i = 0; i < this.clients.Count(); i++)
                     if (this.clients[i] != null)
-                        this.ClientStatus[i] = Room.PLAYING;
+                        this.PlayerStatus[i] = Room.PLAYING;
             }
-
-            this.game.Start();
             
-            Thread t = new Thread(this.CheckEndGame);
-            t.Start();
-
-            return true;
+            return this.game;
         }
-
-        public void StopGame(){
-            if (this.game != null){
-                this.game.Destroy();
-                this.StopThreadCheckGame = true;
-            }
-        }
-
         public void Destroy(){
-            this.StopGame();
-            foreach (ClientSession client in this.clients)
-                if (client != null)
-                    this.Pop(client);
+            foreach(var client in this.clients)
+                if (client != null){
+                    this.Remove(client);
+                    this.lobby.Add(client);
+                }
         }
-
-        public override string ToString(){
-            return "{0},{1}".Format(this.count, this.BetMoney);
+        public string GeneralInfo(){
+            return "{0},{1}".Format(this.clients.CountRealInstance(), this.BetMoney);
         } 
+        public string ToString(int index){
+            if (index < 0 || index > this.clients.Count() || this.clients[index] == null)
+                throw new Exception("User[{0}] is not exist in room".Format(index));
 
-        public int GetLobbyId(){
-            return this.lobby.id;
+            // Lấy thông tin của bàn chơi dưới cái nhìn của người chơi thứ index
+            string[] arr = new string[this.clients.Count() + 2];
+
+            // Thông tin của người chơi thứ index
+            arr[0] = this.BetMoney.ToString();
+
+            int count = 2;
+            for (int add = 0; add < this.clients.Count(); add++){
+                int i = (index + add) % this.clients.Count();
+                if (this.clients[i] == null)
+                    arr[count] = "none,0,0";
+                else
+                    arr[count] = "{0},{1}".Format(this.clients[i].UserInfo(), this.PlayerStatus[i]);
+
+                if (i == this.host){
+                    arr[1] = (count - 2).ToString();
+                }
+                count += 1;
+            }
+
+            string ret = String.Join(",", arr);
+            return ret;
         }
-
     }
 }

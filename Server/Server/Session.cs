@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.Threading;
 
 namespace Server{
-    abstract public class Session{
+    abstract public class Session : Thing{
         /*
         # Mục đích : Đại diện cho một phiên hoạt động của các thực thể
         # ..Các thực thể có session có thể giao tiếp với nhau
@@ -33,7 +33,6 @@ namespace Server{
         private bool stop;
         protected bool stopforce;
         private Thread thread;
-        public abstract string Name { get; }
         static Session(){
             Session.Request_Queue = new Queue<Message>[MAX_OBJ];
             Session.AvailableSlot = 0;
@@ -59,7 +58,7 @@ namespace Server{
             }
         }
         public Message Receive(){
-            if (Session.Request_Queue[this.id].Count == 0)
+           if (this.id == -1 || Session.Request_Queue[this.id].Count() == 0)
                 return null;
             return Session.Request_Queue[this.id].Dequeue();
         }
@@ -120,7 +119,7 @@ namespace Server{
             while(this.stopforce == false){
                 try{
                     Message message = this.Receive();
-                    Thread.Sleep(30);
+                    Thread.Sleep(100);
                     
                     if (message == null){
                         if (this.stop == true)
@@ -128,19 +127,23 @@ namespace Server{
                         continue;
                     }
                     
-                    Console.WriteLine("From {0} {1} '{2}'".Format(this.Name, this.id, message));
-                    new Thread(this.Solve).Start(message);
+                    this.WriteLine(message);
+                    //new Thread(this.Solve).Start(message);
+                    this.Solve(message);
                 }
                 catch(Exception e){
-                    Console.WriteLine(e);
+                    this.WriteLine(e);
                 }
             }
         }
         public virtual void Start(){
-            if (this.thread != null){
+            if (this.id == -1)
+                throw new Exception("Session was closed before start");
+
+            if (this.thread != null)
                 throw new Exception("Another solving thread is running");
-            }
-            Console.WriteLine("Start session {0} {1}".Format(this.Name, this.id));
+        
+            this.WriteLine("Start");
 
             this.stop = false;
             this.thread = new Thread(this.SolvingThread);
@@ -155,23 +158,32 @@ namespace Server{
             if (mode == "force")
                 this.stopforce = true;
 
-            Thread.Sleep(1000);
+            Thread.Sleep(500);
             while (this.thread.IsAlive == true){
-                Console.WriteLine("Wait for stopping {0} {1}".Format(this.Name, this.id));
-                Thread.Sleep(1000);
+                this.WriteLine("Wait for stopping");
+                Thread.Sleep(500);
             }
 
             this.thread = null;
-            Console.WriteLine("End session {0} {1}".Format(this.Name, this.id));
+            this.WriteLine("End");
         }
         public virtual void Destroy(string mode = "normal"){
-            if(this.id == -1)
-                return;
-            
-            if (this.thread != null)
-                this.Stop(mode);
-            Session.Request_Queue[this.id] = null;
-            this.id = -1;
+            lock(Session.Request_Queue){
+                if(this.id == -1)
+                    return;
+                
+                if (this.thread != null)
+                    this.Stop(mode);
+        
+                Session.Request_Queue[this.id] = null;
+                this.id = -1;
+            }
+        }
+        public override void WriteLine(Object str, params object[] obj){
+            Console.WriteLine("From {0} {1} : {2}".Format(this.Name, this.id, str), obj);
+        }
+        public override void WriteLine(Object str){
+            Console.WriteLine("From {0} {1} : {2}".Format(this.Name, this.id , str));
         }
     }
 }

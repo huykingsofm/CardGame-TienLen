@@ -7,13 +7,22 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace Server {
-    public class SimpleSocket : Object{
+    public class SimpleSocket : Thing{
+        public override string Name => "SimpleSocket";
+        public const int MAX_ACCEPTED_SOCKET = 10;
+        private static int count = 0;
         static int BUFFER_SIZE = 1024;
         private Socket socket = null;
         public SimpleSocket(Socket s){
+            if (SimpleSocket.count >= SimpleSocket.MAX_ACCEPTED_SOCKET){
+                s.Close();
+                throw new Exception("Server can not accept any more client");
+            }
             this.socket = s;
             this.socket.ReceiveBufferSize = BUFFER_SIZE;
             this.socket.SendBufferSize = BUFFER_SIZE;
+            SimpleSocket.count++;
+            this.WriteLine("The remain slot in server : {0}", SimpleSocket.MAX_ACCEPTED_SOCKET - SimpleSocket.count);   
         }
         
         public String Receive() {
@@ -30,7 +39,7 @@ namespace Server {
             if (str == "")
                 return null;
             
-            Console.WriteLine("From {0} : {1}".Format(this.socket.RemoteEndPoint, str));
+            Console.WriteLine("From {0} : {1}".Format(this, str));
             return str;
         }
 
@@ -43,15 +52,37 @@ namespace Server {
                 Console.WriteLine(e.Message);
                 return false;
             }
-            Console.WriteLine("To " + this.socket.RemoteEndPoint.ToString()
-                    + " :" + str);
+            Console.WriteLine("To {0} : {1}".Format(this, str));
             return true;
         }
         public void Close() {
-            this.socket.Close();
+            try{
+                this.socket.Close();
+            }
+            catch(Exception e){
+                this.WriteLine(e.Message);
+            }
+            finally{
+                SimpleSocket.count--;
+            }
+            this.WriteLine("The remain slot in server : {0}", SimpleSocket.MAX_ACCEPTED_SOCKET - SimpleSocket.count);   
         }
         public override string ToString(){
             return this.socket.RemoteEndPoint.ToString();
+        }
+        public bool IsConnected(){
+            try{
+                bool part1 = this.socket.Poll(1000, SelectMode.SelectRead);
+                bool part2 = (this.socket.Available == 0);
+
+                if (part1 && part2)
+                    return false;
+                else
+                    return true;
+            }
+            catch{
+                return false;
+            }
         }
     }
 }

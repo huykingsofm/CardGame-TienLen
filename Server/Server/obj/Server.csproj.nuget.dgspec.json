@@ -48,6 +48,10 @@
             "MongoDB.Driver": {
               "target": "Package",
               "version": "[2.8.0, )"
+            },
+            "System.Json": {
+              "target": "Package",
+              "version": "[4.5.0, )"
             }
           },
           "imports": [

@@ -1,11 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace Server{
-    public class CardSet : Object{
+namespace Server
+{
+    public class CardSet : Object
+    {
         /*
         # Mục đích : Chứa thông tin của một tập bài
         # Lưu trữ : Là một vector one-hot gồm 52 phần tử, mỗi phần tử đại diện cho
@@ -13,15 +15,21 @@ namespace Server{
         # Hành vi : + CardSet có một hành vi là Move(đánh bài)
         */
         public const int MAX_CARDS = 52;
-        public bool[] cards{get; protected set;}
-        public CardSet(){
+        public bool[] cards { get; protected set; }
+        public CardSet()
+        {
             this.cards = new bool[MAX_CARDS];
             for (int i = 0; i < CardSet.MAX_CARDS; i++)
                 this.cards[i] = false;
         }
-        public static CardSet Create(List<Card> list){
+        public static CardSet Create(List<Card> list)
+        {
             CardSet set = new CardSet();
-            foreach(Card card in list){
+            if (list == null)
+                return set;
+
+            foreach (Card card in list)
+            {
                 int value = card.ToInt();
                 set.cards[value] = true;
             }
@@ -29,29 +37,36 @@ namespace Server{
                 return set;
             return null;
         }
-        public List<Card> ToList(){
+        public List<Card> ToList()
+        {
             List<Card> tmp = new List<Card>();
-            
-            for (int i = 0; i < CardSet.MAX_CARDS; i++){
+
+            for (int i = 0; i < CardSet.MAX_CARDS; i++)
+            {
                 if (this.cards[i])
                     tmp.Add(Card.Create(i));
             }
 
             return tmp;
         }
-        public int Count(){
+        public int Count()
+        {
             int count = 0;
-            foreach(bool card in this.cards){
+            foreach (bool card in this.cards)
+            {
                 if (card)
                     count++;
             }
             return count;
         }
-        public int Count(int number){
+        public int Count(int number)
+        {
             // Đếm số lượng quân bài có số nhất định
-            int count  = 0;
-            for(int i = 0; i < CardSet.MAX_CARDS; i++){
-                if (this.cards[i]){
+            int count = 0;
+            for (int i = 0; i < CardSet.MAX_CARDS; i++)
+            {
+                if (this.cards[i])
+                {
                     int number_t = Card.Create(i).number;
                     if (number_t == number)
                         count++;
@@ -59,53 +74,70 @@ namespace Server{
             }
             return count;
         }
-        public int Count(int number, int suit){
+        public int Count(int number, int suit)
+        {
             // Đếm số lượng quân bài có số nhất định
-            int count  = 0;
-            for(int i = 0; i < CardSet.MAX_CARDS; i++){
-                if (this.cards[i]){
-                    Card card = Card.Create(value : i);
+            int count = 0;
+            for (int i = 0; i < CardSet.MAX_CARDS; i++)
+            {
+                if (this.cards[i])
+                {
+                    Card card = Card.Create(value: i);
                     if (card.number == number && card.suit == suit)
                         count++;
                 }
             }
             return count;
         }
-        public bool Move(CardSet moveset){
+
+        public Card FindSmallest(){
+            for (int i = 0; i < CardSet.MAX_CARDS; i++)
+                if (this.cards[i])
+                    return Card.Create(i);
+            return null;
+        }
+        public bool Move(CardSet moveset)
+        {
             Server.Move move = Server.Move.Create(this, moveset);
-            
+
             if (move == null) // Nếu nước đánh không hợp lệ
                 return false;
 
             List<Card> movelist = moveset.ToList();
-            foreach(Card card in movelist){
+            foreach (Card card in movelist)
+            {
                 int value = card.ToInt();
                 this.cards[value] = false;
             }
 
             return true;
         }
-        public bool Move(List<Card> list){
+        public bool Move(List<Card> list)
+        {
             CardSet moveset = CardSet.Create(list);
             return this.Move(moveset);
         }
-        public CardSet RandomMove(){
+        public CardSet RandomMove()
+        {
             List<Card> list = new List<Card>();
             List<Card> dummy = this.ToList();
             if (dummy.Count() < 0)
                 return null;
             list.Add(dummy.First());
-            
+
             return CardSet.Create(list);
         }
-        public override string ToString(){
-            string str = "";
-            foreach(bool card in this.cards)
-                str += (card ? 1 : 0) + " ";
-            str.Trim();
-            return str;
+        public override string ToString()
+        {
+            List<Card> listcard = this.ToList();
+            string[] str = new string[listcard.Count() + 1];
+            str[0] = listcard.Count().ToString();
+            for (int i = 0; i < listcard.Count(); i++)
+                str[i + 1] = listcard[i].ToString();
+            return String.Join("," , str);
         }
-        public CardSet Clone(){
+        public CardSet Clone()
+        {
             CardSet dummy = new CardSet();
             for (int i = 0; i < CardSet.MAX_CARDS; i++)
                 dummy.cards[i] = this.cards[i];

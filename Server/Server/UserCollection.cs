@@ -154,7 +154,7 @@ namespace Server
                 this.collection.InsertOne(newUser);
             }
         }
-        public void ChangeMoney(User representation,
+        public int ChangeMoney(User representation,
                                 string username, int additionMoney){
             /* 
             # Mục đích : Thay đổi tiền của người dùng 
@@ -188,6 +188,7 @@ namespace Server
             var update = Builders<BsonDocument>.Update
                 .Set("money", tmp.money + additionMoney);
             this.collection.UpdateOne(query, update);
+            return additionMoney;
         }
         public void ChangePass(User representation,
             string username, String newPass){

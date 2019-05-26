@@ -15,13 +15,18 @@ namespace Server
         [STAThread]
         static void Main()
         {
-            OutdoorSession outdoor = new OutdoorSession();
+            //Outdoor o = new Outdoor();
+            OutdoorSession outdoor = OutdoorSession.Create();
+            Gate gate = Gate.Create(outdoor);
             outdoor.Start();
+            gate.Start();
             bool stop = false;
+            
             while(stop == false){
                 string str = Console.ReadLine();
                 switch(str){
                     case "Close":
+                        gate.Stop();
                         outdoor.Destroy();
                         stop = true;
                         break;

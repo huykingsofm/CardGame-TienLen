@@ -7,58 +7,47 @@ using System.IO;
 using System.Text;
 
 namespace Server{
-    class GameSession : Session{
+    public class GameSession : Session{
         /* 
-        # Mục đích : Tạo một phiên làm việc cho game có thể giao tiếp với các client
+        # Mục đích : Đại diện cho game dưới dạng một thực thể phản ứng nhanh.
         # 
         */
         Game game;
-        ClientSession[] clients;
+        ClientSession[] clientsessions;
         int[] index;
         double BetMoney;
         int TimeoutSignal;
-        public override string Name => "Game";
+        public override string Name => "GameSession";
         
         // RoomSession room;
 
-        private GameSession(ClientSession[] clients, double BetMoney, int Starter) : base(){
-            int count = 0;
-            this.clients = new ClientSession[4];
-            
-            for (int i = 0; i < clients.Count(); i++){
-                
-                this.clients[i] = clients[i];
-
-                if (clients[i] != null){
-                    this.index[i] = count;
-                    count += 1; 
-                }
-                else
-                    this.index[i] = -1;   
-            }
-    
-            for (int i = 0; i < clients.Count(); i++)
-                if (this.clients[i] != null)
-                    this.index[i] = (this.index[i] + count - this.index[Starter]) % count;
-
-            this.game = Game.Create(count, Starter);
+        protected GameSession(ClientSession[] clients, Game game, double BetMoney) : base(){
+            this.clientsessions = clients;
+            this.game = game;
             this.BetMoney = BetMoney;
         }
 
-        public static GameSession Create(ClientSession[] clients, double BetMoney, int Starter){
-            if (clients.Count() != 4)
+        public static GameSession Create(ClientSession[] clients, Game game, double BetMoney){
+            if (game == null)
                 return null;
-
-            if (Starter < 0 || Starter >= 4 || clients[Starter] == null)
+            
+            if (clients.Count() != 4)
                 return null;
 
             if (BetMoney < 0)
                 return null;
 
-            GameSession gamesession = new GameSession(clients, BetMoney, Starter);
+            GameSession gamesession = new GameSession(clients, game, BetMoney);
             return gamesession;
         }
 
+        public void UpdateForClients(){
+            for(int i = 0; i < this.clientsessions.Count(); i++){
+                if (this.clientsessions[i] != null){
+                    this.Send(clientsessions[i], "GameInfo:{0}".Format(this.game.ToString(i) ) );
+                }
+            }
+        }
         private void Timer(int time, int iplayer){
             this.TimeoutSignal = 0; // turn off
             int interval_time = time;
@@ -128,6 +117,10 @@ namespace Server{
                     Console.WriteLine("Cannot solve this message from Game : {0}".Format(message));
                     break;
             }
+        }
+        public override void Start(){
+            this.UpdateForClients();
+            base.Start();
         }
         public bool IsEnd(){
             return this.game.EndGameSignal;
