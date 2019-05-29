@@ -15,7 +15,7 @@ namespace Server
         [STAThread]
         static void Main()
         {
-            //Outdoor o = new Outdoor();
+            Console.WriteLine("Write by Le Ngoc Huy");
             OutdoorSession outdoor = OutdoorSession.Create();
             Gate gate = Gate.Create(outdoor);
             outdoor.Start();

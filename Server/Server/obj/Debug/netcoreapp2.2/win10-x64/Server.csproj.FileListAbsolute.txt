@@ -1,0 +1,15 @@
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\bin\Debug\netcoreapp2.2\win10-x64\hostpolicy.dll
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\bin\Debug\netcoreapp2.2\win10-x64\hostfxr.dll
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\bin\Debug\netcoreapp2.2\win10-x64\Server.exe
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\bin\Debug\netcoreapp2.2\win10-x64\Server.dll.config
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\bin\Debug\netcoreapp2.2\win10-x64\Server.deps.json
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\bin\Debug\netcoreapp2.2\win10-x64\Server.runtimeconfig.json
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\bin\Debug\netcoreapp2.2\win10-x64\Server.runtimeconfig.dev.json
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\bin\Debug\netcoreapp2.2\win10-x64\Server.dll
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\bin\Debug\netcoreapp2.2\win10-x64\Server.pdb
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\obj\Debug\netcoreapp2.2\win10-x64\Server.csprojAssemblyReference.cache
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\obj\Debug\netcoreapp2.2\win10-x64\Server.csproj.CoreCompileInputs.cache
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\obj\Debug\netcoreapp2.2\win10-x64\Server.AssemblyInfoInputs.cache
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\obj\Debug\netcoreapp2.2\win10-x64\Server.AssemblyInfo.cs
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\obj\Debug\netcoreapp2.2\win10-x64\Server.dll
+C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Server\obj\Debug\netcoreapp2.2\win10-x64\Server.pdb

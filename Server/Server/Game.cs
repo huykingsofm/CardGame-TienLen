@@ -32,6 +32,7 @@ namespace Server{
         private int lastplayer; // Chỉ số của người chơi cuối cùng đánh bài.
         private int SpecialChain; // = 0 nếu không có gì, > 0 nếu có chuỗi chặn heo.
         private Card smallestcard = null;
+        private List<CardSet> onboardsets = null;
         public bool EndGameSignal {get; private set;} // Tín hiệu kết thúc game.
         public string LogDir; // Các file nhật ký game được lưu ở đây
 
@@ -63,7 +64,8 @@ namespace Server{
 
             this.LogDir = dir.TrimEnd(new char[]{'/', '\\'}) + "/";
 
-            HistoryMove = new List<Move>();
+            this.HistoryMove = new List<Move>();
+            this.onboardsets = new List<CardSet>();
             this.whoturn = Starter;
             this.lastplayer = Starter;
             this.lastmove = null;
@@ -93,7 +95,7 @@ namespace Server{
             return game;
         }
 
-        public List<double> Play(CardSet moveset){ 
+        public List<int> Play(CardSet moveset){ 
             /*
             # Mục đích : thực hiện đánh nước bài với player đang trong lượt
             # Trả về : + null nếu không thể đánh được với nước bài này
@@ -109,7 +111,7 @@ namespace Server{
             */
 
             if (this.EndGameSignal)
-                return null;
+                throw new Exception("Game finished");
 
             // Khởi tạo nước đánh với player lượt này
             Server.Move move = Move.Create(this.cards[whoturn], moveset);
@@ -126,24 +128,27 @@ namespace Server{
             // Chỉ dành cho người được đánh ưu tiên
             if (this.smallestcard != null 
             && moveset.Count(this.smallestcard.number, this.smallestcard.suit) == 0)
-                return null;
+                throw new Exception("You must move with smallest card");
             else
                 this.smallestcard = null;
 
             // Nếu không còn lỗi nào, cho phép người chơi thực hiện nước đánh này
             this.cards[whoturn].Move(moveset);
 
-            // Khởi tạo trước các giá trị trả về, mặc định tất cả là 0
-            List<double> ret = new List<double>(this.players.Count() + 1);
-            for(int i = 0; i < ret.Count(); i++)
-                ret[i] = 0.0;
+            // Khởi tạo trước các giá trị trả về - hệ số tiền thay đổi sau nước đi, mặc định tất cả là 0
+            List<int> ret = new List<int>();
+            for(int i = 0; i < this.players.Count(); i++)
+                ret.Add(0);
+
+            // Tạo tín hiệu kết thúc, ban đầu là -1 - game chưa kết thúc
+            ret.Add(-1);
 
             // Số lượng lá bài của người chơi hiện tại đã hết
             // --> Game kết thúc
             if (this.cards[this.whoturn].Count() == 0){ 
-                // Tạo tín hiệu kết thúc, ret.Last != 0
+                // Đặt tín hiệu kết thúc game, ret.Last == chỉ số người thắng
                 this.EndGameSignal = true;
-                ret[ret.Count() - 1] = 1.0; 
+                ret[ret.Count() - 1] = this.whoturn; 
 
                 /*
                 # + Tính lại hệ số tiền phải thay đổi của mỗi người chơi
@@ -158,14 +163,15 @@ namespace Server{
 
                 // Khởi tạo biến lưu tổng hệ số của người thắng
                 double sum = 0;
-                for (int i = 0; i < this.cards.Count(); i++){
-                    ret[i] -= this.cards[i].Count();
-                    ret[i] -= this.cards[i].Count(number:2);
-                    ret[i] -= this.cards[i].Count(number:2, suit:2); 
-                    ret[i] -= this.cards[i].Count(number:2, suit:3);
-                    sum += ret[i];
-                }
-                ret[this.whoturn] = (-sum) * 0.9;
+                for (int i = 0; i < this.cards.Count(); i++)
+                    if (this.cards[i] != null){
+                        ret[i] -= this.cards[i].Count();
+                        ret[i] -= this.cards[i].Count(number:2);
+                        ret[i] -= this.cards[i].Count(number:2, suit:2); 
+                        ret[i] -= this.cards[i].Count(number:2, suit:3);
+                        sum += ret[i];
+                    }
+                ret[this.whoturn] = (int) (- sum * 0.9);
             }
 
             /*
@@ -201,14 +207,14 @@ namespace Server{
                     this.SpecialChain = 3; // Chất rô hoặc cơ
 
                 ret[this.lastplayer] += -this.SpecialChain;
-                ret[this.whoturn] += this.SpecialChain * 0.9;;
+                ret[this.whoturn] += (int) (this.SpecialChain * 0.9);
                 this.SpecialChain *= 2;
             }
             
             if ((iStatus == 1 || iStatus == 3) && this.SpecialChain > 0){ 
                 // Nếu đang có chuỗi chặn heo
                 ret[whoturn] += this.SpecialChain;
-                ret[lastplayer] += -this.SpecialChain * 0.9;
+                ret[lastplayer] += (int)(-this.SpecialChain * 0.9);
                 this.SpecialChain *= 2;
             }
 
@@ -217,16 +223,17 @@ namespace Server{
             this.HistoryMove.Add(move);
             this.lastmove = move;
             this.lastplayer = this.whoturn;
+            this.onboardsets.Add(move.GetMoveSet());
             this.Next();
     
             return ret;
         }
         private void Next(){
-            this.whoturn = (this.whoturn + 1) % this.players.Count();
-            while(this.players[this.whoturn] == null) 
-                this.whoturn = (this.whoturn + 1) % this.players.Count();
+            this.whoturn = (this.whoturn + 1) % this.cards.Count();
+            while(this.cards[this.whoturn] == null) 
+                this.whoturn = (this.whoturn + 1) % this.cards.Count();
         }
-        public bool Pass(){
+        public List<int> Pass(ref CardSet moveset){
             /*
             # Người chơi hiện tại yêu cầu bỏ lượt
             # Nhưng nếu lượt chơi bắt buộc người này thực hiện,
@@ -235,56 +242,90 @@ namespace Server{
             # .. bắt đầu của lượt này
             */
             if (this.EndGameSignal)
-                return false;
+                throw new Exception("Game finished");
+
+            List<int> ret = null;
 
             if (this.lastmove == null){
                 // Bắt buộc đánh ngẫu nhiên
                 CardSet random;
-                if (this.smallestcard != null)
+                if (this.smallestcard == null)
                     random = this.cards[this.whoturn].RandomMove();
                 else
                     random = CardSet.Create( (new List<Card>( new Card[]{this.smallestcard} ) ) );
 
-                this.Play(random);
+                ret = this.Play(random);
+                moveset = random;
             }
-
-            this.HistoryMove.Add(null);
-            this.whoturn = (this.whoturn + 1) % this.cards.Count();
+            else{
+                this.Next();
+                this.HistoryMove.Add(null);
+            }
 
             if (this.whoturn == this.lastplayer){ 
                 // Hết lượt
                 this.lastmove = null;
                 this.SpecialChain = 0;
+                this.onboardsets = new List<CardSet>();
             }
-            return true;
+            return ret;
         }
         public string ToString(int index){
+            /*
+             * GameInfo:
+             *      + Bộ bài của người chơi hiện tại.
+             *      + Số lượng bài của người chơi khác.
+             *      + Chỉ số người chơi đang tới lượt.
+             *      + Khả năng bỏ lượt (-1 : bỏ qua, 0 : không thể bỏ lượt, 1 : có thể bỏ lượt).
+             */
             if (index < 0 || index > this.players.Count() || this.players[index] == null)
                 throw new Exception("User[{0}] is not exist in game".Format(index));
 
             // Lấy thông tin của bàn chơi dưới cái nhìn của người chơi thứ index
-            string[] arr = new string[this.players.Count() + 1];
+            List<string> arr = new List<string>();
 
             // Thông tin của người chơi thứ index
-            arr[0] = this.cards[index].ToString();
-
-            // Thông tin của bộ bài trên bàn
-            if (this.lastmove != null)
-                arr[this.players.Count()] = this.lastmove.GetMoveSet().ToString();
+            if (this.cards[index] == null)
+                arr.Add("0");
             else
-                arr[this.players.Count()] = "None";
-            int count = 1;
+                arr.Add(this.cards[index].ToString());
+
+            int onturn = 0;
             for (int add = 1; add < this.players.Count(); add++){
                 int i = (index + add) % this.players.Count();
-                if (this.players[i] == null)
-                    arr[count] = "#";
+                if (this.cards[i] == null)
+                    arr.Add("0");
                 else
-                    arr[count] = this.cards[i].Count().ToString();
-                count += 1;
+                    arr.Add(this.cards[i].Count().ToString());
+                
+                if (i == this.whoturn)
+                    onturn = add;
             }
+
+            arr.Add(onturn.ToString());
+            
+            int pass = this.whoturn == index ? 0 : -1;
+            pass = (pass == 0) && this.whoturn == this.lastplayer ? 1 : pass;
+            arr.Add(pass.ToString());
 
             string ret = String.Join(",", arr);
             return ret;
+        }
+        public string OnTableInfo(){
+            /* 
+             * MovedCardSets:
+             *      + Số lượng bộ bài trên bàn ở lượt hiện tại.
+             *      + Các bộ bài trên bàn ở lượt hiện tại.
+             */
+
+            List<string> ret = new List<string>();
+
+            ret.Add(this.onboardsets.Count().ToString());
+
+            foreach(var cardset in this.onboardsets)
+                ret.Add(cardset.ToString());
+            
+            return String.Join(',', ret);
         }
         public void WriteLog(){
             /*

@@ -37,6 +37,13 @@ namespace Server
                 return set;
             return null;
         }
+        public static CardSet Create(string[] format)
+        {
+            List<Card> list = new List<Card>();
+            foreach(var e in format)
+                list.Add(Card.Create(e));
+            return CardSet.Create(list);
+        }
         public List<Card> ToList()
         {
             List<Card> tmp = new List<Card>();
@@ -127,13 +134,16 @@ namespace Server
 
             return CardSet.Create(list);
         }
-        public override string ToString()
+        public string ToString(bool sum = true)
         {
             List<Card> listcard = this.ToList();
-            string[] str = new string[listcard.Count() + 1];
-            str[0] = listcard.Count().ToString();
+            List<string> str = new List<string>();
+            
+            if (sum)
+                str.Add(listcard.Count().ToString());
+
             for (int i = 0; i < listcard.Count(); i++)
-                str[i + 1] = listcard[i].ToString();
+                str.Add( listcard[i].ToString());
             return String.Join("," , str);
         }
         public CardSet Clone()

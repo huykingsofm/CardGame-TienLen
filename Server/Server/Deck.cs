@@ -34,7 +34,7 @@ namespace Server{
             
             for (int i = 0; i < 4; i++)
                 if (players[i] != null && players[i].IsLogin()){
-                    sets[i] = CardSet.Create(null);
+                    sets[i] = CardSet.Create((List<Card>)null);
 
                     for (int j = 0; j < 13; j++){
                         int value = list[i * 13 + j].ToInt();

@@ -24,7 +24,9 @@ namespace Server{
             */
             Message message  = (Message) obj;
 
-            if (this.clientsessions.FindById(message.id) == -1 && message.id != this.lobbysession.id){
+            if (this.clientsessions.FindById(message.id) == -1 
+            && message.id != this.lobbysession.id
+            && (this.gamesession == null || message.id != this.gamesession.id) ){
                 this.WriteLine("Can not identify message");
                 return;
             }
@@ -55,7 +57,7 @@ namespace Server{
                         return;
                     }
                     this.Send(clientsession, "Success:Ready");
-                    this.UpdateForClients();
+                    this.UpdateRoomForClients();
                     break;
                 }
                 case "UnReady":{
@@ -83,7 +85,7 @@ namespace Server{
                         return;
                     }
                     this.Send(clientsession, "Success:UnReady");
-                    this.UpdateForClients();
+                    this.UpdateRoomForClients();
                     break;
                 }
                 case "Start":{
@@ -108,7 +110,12 @@ namespace Server{
                         return;
                     }
 
-                    this.gamesession = GameSession.Create(this.clientsessions, game, this.room.BetMoney);
+                    this.gamesession = GameSession.Create(
+                        this, 
+                        this.clientsessions, 
+                        game, 
+                        this.room.BetMoney
+                    );
                     this.Send(clientsession, "Success:Start");
 
                     foreach(var client in this.clientsessions)
@@ -145,7 +152,7 @@ namespace Server{
                     }
                     this.Send(clientsession, "Success:BetMoney");
                     this.Send(this.lobbysession, "UpdateRoom");
-                    this.UpdateForClients();
+                    this.UpdateRoomForClients();
                     break;
                 }
                 case "Logout":{
@@ -218,27 +225,148 @@ namespace Server{
                     this.Send(this.lobbysession, "UpdateRoom");
                     break;
                 }
+                case "UpdateGame":{
+                    if (this.gamesession == null || message.id != this.gamesession.id){
+                        this.WriteLine("Message must come from Game");
+                        return;
+                    }
+
+                    if (message.args != null){
+                        this.WriteLine("Message dont need any parameters");
+                        return;
+                    }
+                    this.UpdateGameForClients();
+                    break;
+                }
+                case "UpdateRoom":{
+                    if (this.gamesession == null || message.id != this.gamesession.id){
+                        this.WriteLine("Message must come from Game");
+                        return;
+                    }
+
+                    if (message.args != null){
+                        this.WriteLine("Message dont need any parameters");
+                        return;
+                    }
+                    this.Send(this.lobbysession, "UpdateRoom");
+                    break;
+                }
+                case "PlayingCard":{
+                    if (this.gamesession == null){
+                        this.WriteLine("Game has not still started yet");
+                        return;
+                    }
+
+                    if (this.gamesession.id != message.id){
+                        this.WriteLine("Message must come from Game");
+                        return;
+                    }
+
+                    if (message.args == null){
+                        this.WriteLine("Message need some parameters but not found any");
+                        return;
+                    }
+
+                    int index = 0;
+                    if (Int32.TryParse(message.args[0], out index) == false){
+                        this.WriteLine("Error in parameters");
+                        return;
+                    }
+
+                    string playingcard = String.Join(',', message.args.Take(1, -1));
+                    this.UpdatePlayingCardForClients(index, playingcard);
+                    break;
+                }
+                case "GameFinished":{
+                    if (message.id != this.gamesession.id){
+                        this.WriteLine("Message must come from Game");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("Message need a parameters");
+                        return;
+                    }
+
+                    int winner = 0;
+                    if (Int32.TryParse(message.args[0], out winner) == false){
+                        this.WriteLine("Parameters is incorrect");
+                        return;
+                    }
+
+                    for (int i = 0; i < this.clientsessions.Count(); i++)
+                        if (this.clientsessions[i] != null){
+                            int dummywinner = (4 + winner - i) % 4;
+                            this.Send(this.clientsessions[i], "GameFinished:{0}".Format(dummywinner));
+                            this.clientsessions[i].Join((GameSession) null);
+                        }
+
+                    this.room.StopGame(winner);
+                    this.UpdateRoomForClients();
+                    this.Send(this.lobbysession, "UpdateRoom");
+                    this.gamesession.Destroy();
+                    this.gamesession = null;
+                    
+                    break;
+                }
                 default:{
                     this.WriteLine("Cannot identify message");
                     break;                
                 }
             }
         }
-        public void UpdateForClients(){
+        public void UpdateRoomForClients(){
             for(int i = 0; i < this.clientsessions.Count(); i++)
                 if (this.clientsessions[i] != null)
                     this.Send(this.clientsessions[i], "RoomInfo:{0}".Format(this.ToString(i)));
+        }
+        public void UpdateGameForClients(){
+            if (this.gamesession == null)
+                throw new Exception("Game has not started yet");
+
+             for(int i = 0; i < this.clientsessions.Count(); i++)
+                if (this.clientsessions[i] != null){
+                    this.Send(this.clientsessions[i], "GameInfo:{0}"
+                        .Format(this.gamesession.GameInfo(i)));
+                    this.Send(this.clientsessions[i], "OnTableInfo:{0}"
+                        .Format(this.gamesession.OnTableInfo()));
+                }
+        }
+        public void UpdateGameForClient(int index){
+            if (this.gamesession == null)
+                throw new Exception("Game has not started yet");
+
+            if (index < 0 || index  >= this.clientsessions.Count() || this.clientsessions[index] == null)
+                throw new Exception("Client[{0}] do not exist in room".Format(index));
+
+            this.Send(this.clientsessions[index], "GameInfo:{0}"
+                .Format(this.gamesession.GameInfo(index)));
+            this.Send(this.clientsessions[index], "OnTableInfo:{0}"
+                .Format(this.gamesession.OnTableInfo()));
+        }
+        public void UpdatePlayingCardForClients(int index, string PlayingCard){
+            if (this.gamesession == null)
+                throw new Exception("Game has not started yet");
+
+            for(int i = 0; i < this.clientsessions.Count(); i++)
+                if (this.clientsessions[i] != null){
+                    int onturn = (4 + index - i) % 4;
+                    this.Send(this.clientsessions[i], "PlayingCard:{0},{1}"
+                        .Format(onturn, PlayingCard) );
+                }
         }
         public void Add(ClientSession client){
             int index = this.room.Add(client.client);
             this.clientsessions[index] = client;
             this.Send(client, "Success:JoinRoom");
-            this.UpdateForClients();
+            this.UpdateRoomForClients();
+            if (this.gamesession != null)
+                this.UpdateGameForClient(index);
         }
         public void Remove(ClientSession client){
             int index = this.room.Remove(client.client);
             this.clientsessions[index] = null;
-            this.UpdateForClients();
+            this.UpdateRoomForClients();
         }
         public string ToString(int index){
             return this.room.ToString(index);

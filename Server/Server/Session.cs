@@ -119,7 +119,7 @@ namespace Server{
             while(this.stopforce == false){
                 try{
                     Message message = this.Receive();
-                    Thread.Sleep(100);
+                    Thread.Sleep(20);
                     
                     if (message == null){
                         if (this.stop == true)

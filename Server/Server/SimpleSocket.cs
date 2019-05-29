@@ -58,12 +58,10 @@ namespace Server {
         public void Close() {
             try{
                 this.socket.Close();
+                SimpleSocket.count -= 1;
             }
             catch(Exception e){
                 this.WriteLine(e.Message);
-            }
-            finally{
-                SimpleSocket.count--;
             }
             this.WriteLine("The remain slot in server : {0}", SimpleSocket.MAX_ACCEPTED_SOCKET - SimpleSocket.count);   
         }

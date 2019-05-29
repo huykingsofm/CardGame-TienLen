@@ -133,7 +133,7 @@ namespace Server{
 
             switch (message.name)
             {
-                case "Login":
+                case "Login":{
                     /*
                     # Nhận thông tin client đăng nhập
                     # Hành động : Khởi tạo thông tin User
@@ -159,8 +159,8 @@ namespace Server{
 
                     this.Login(message.args[0], message.args[1]);
                     break;
-
-                case "Signup":
+                }
+                case "Signup":{
                     /*
                     # Nhận thông tin đăng ký từ client
                     # Hành động : Cố gắng đăng ký, gửi thông báo
@@ -177,8 +177,8 @@ namespace Server{
 
                     this.Singup(message.args[0], message.args[1]);
                     break;
-
-                case "Logout":
+                }
+                case "Logout":{
                     if (message.id != this.id){
                         this.WriteLine("Message must come from client");
                         return;
@@ -196,8 +196,8 @@ namespace Server{
                     if (this.gamesession != null)
                         this.Send(this.gamesession, "Logout");
                     break;
-
-                case "LobbyInfo":
+                }
+                case "LobbyInfo":{
                     if (this.lobbysession == null || message.which != this.lobbysession.Name){
                         // Nếu message không đến từ lobby hoặc client không ở lobby
                         this.WriteLine("Message must come from lobby");
@@ -222,9 +222,9 @@ namespace Server{
                     
                     this.client.Send(message.MessageOnly());
                     break;
-
+                }
                 case "RoomInfo":{
-                    if (message.id != this.roomsession.id){
+                    if (this.roomsession == null || message.id != this.roomsession.id){
                         this.WriteLine("Message must come from Room");
                         return;
                     }
@@ -238,8 +238,9 @@ namespace Server{
                     break;
                 }
                 case "GameInfo":{
-                    if (message.id != this.gamesession.id){
-                        this.WriteLine("Message must come from Game");
+                    if ( (this.gamesession == null || message.id != this.gamesession.id) 
+                    && (this.roomsession == null || message.id != this.roomsession.id ) ){
+                        this.WriteLine("Message must come from Game or Room");
                         return;
                     }
                 
@@ -322,7 +323,6 @@ namespace Server{
                     this.Send(this.roomsession, "JoinLobby");
                     break;
                 }
-
                 case "Payin":{
                     if (this.id != message.id){
                         this.WriteLine("Message must be come from Client");
@@ -342,7 +342,6 @@ namespace Server{
                     this.Send(this.lobbysession, message.MessageOnly());
                     break;
                 }
-
                 case "Ready":{
                     if (this.id != message.id){
                         this.WriteLine("Message must come from client");
@@ -362,7 +361,6 @@ namespace Server{
                     this.Send(this.roomsession, "Ready");
                     break;
                 }
-
                 case "UnReady":{
                     if (this.id != message.id){
                         this.WriteLine("Message must come from client");
@@ -382,7 +380,6 @@ namespace Server{
                     this.Send(this.roomsession, "UnReady");
                     break;
                 }
-
                 case "Start":{
                     if (this.id != message.id){
                         this.WriteLine("Message must come from client");
@@ -401,7 +398,7 @@ namespace Server{
 
                     this.Send(this.roomsession, "Start");
                     break;
-                }
+                }                
                 case "BetMoney":{
                     if (this.id != message.id){
                         this.WriteLine("Message must come from client");
@@ -419,6 +416,102 @@ namespace Server{
                     }
 
                     this.Send(this.roomsession, message.MessageOnly());
+                    break;
+                }
+                case "Play":{
+                    if (this.id != message.id){
+                        this.WriteLine("Message must come from Client");
+                        return;
+                    }
+
+                    if (message.args == null){
+                        this.WriteLine("Message need some parameters");
+                        return;
+                    }
+
+                    if (this.gamesession == null){
+                        this.WriteLine("Client is not in any game");
+                        return;
+                    }
+
+                    this.Send(gamesession, message.MessageOnly());
+                    break;
+                }
+                case "Pass":{
+                    if (message.id != this.id){
+                        this.WriteLine("Message must come from Client");
+                        return;
+                    }
+
+                    if (this.gamesession == null){
+                        this.WriteLine("Client must be in game to send this message");
+                        return;
+                    }
+
+                    if (message.args != null){
+                        this.WriteLine("Message dont need any parameters");
+                        return;
+                    }
+
+                    this.Send(this.gamesession, message.MessageOnly());
+                    break;
+                }
+                case "PlayingCard":{
+                    if (this.roomsession == null || message.id != this.roomsession.id){
+                        this.WriteLine("Message must be come from roomsession");
+                        return;
+                    }
+
+                    if (message.args == null){
+                        this.WriteLine("Message need some parameters but not found any");
+                        return;
+                    }
+
+                    this.client.Send(message.MessageOnly());
+                    break;
+                }
+                case "OnTableInfo":{
+                    if ( (this.gamesession == null || message.id != this.gamesession.id) 
+                    && (this.roomsession == null || message.id != this.roomsession.id ) ){
+                        this.WriteLine("Message must come from Game or Room");
+                        return;
+                    }
+                
+                    if (message.args == null){
+                        this.WriteLine("Message must have many arguments");
+                        return;
+                    }
+
+                    this.client.Send(message.MessageOnly());
+                    break;
+                }
+                case "UpdateMoney":{
+                    if ( (this.gamesession == null || message.id != this.gamesession.id) 
+                    && (this.roomsession == null || message.id != this.roomsession.id ) ){
+                        this.WriteLine("Message must come from Game or Room");
+                        return;
+                    }
+                
+                    if (message.args == null || message.args.Count() != 4){
+                        this.WriteLine("Message need 4 arguments");
+                        return;
+                    }
+
+                    this.client.Send(message.MessageOnly());
+                    break;
+                }
+                case "GameFinished":{
+                    if (message.id != this.roomsession.id){
+                        this.WriteLine("Message must come from Room");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("Message need a parameter");
+                        return;
+                    }
+
+                    this.client.Send(message.MessageOnly());
                     break;
                 }
                 default:{

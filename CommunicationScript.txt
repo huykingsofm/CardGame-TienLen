@@ -66,35 +66,33 @@
 		* Nếu thành công, trả về "Success:Start"
 	
 + Game:
-	- Game sẽ bắt đầu sau khi nhận được thông báo "Success:Start". Khi vừa bắt đầu, những người chơi trong phòng sẽ tự động nhận được một message, message này sẽ tiếp tục được gửi nếu có bất kỳ sự thay đổi nào trong quá trình chơi game.
-		* "GameInfo":<thông tin bộ bài 0>,<số lá bài 1>,<số lá bài 2>,<số lá bài 3>,<thông tin bài trên bàn>,<chỉ số người đang tới lượt>,<cho phép bỏ lượt>"
+	- Game sẽ bắt đầu sau khi nhận được thông báo "Success:Start". Khi vừa bắt đầu, những người chơi trong phòng sẽ tự động nhận được một message, message này sẽ 	tiếp tục được gửi nếu có bất kỳ sự thay đổi nào trong quá trình chơi game.
+		* "GameInfo":<thông tin bộ bài 0>,<số lá bài 1>,<số lá bài 2>,<số lá bài 3>,<chỉ số người đang tới lượt>,<cho phép bỏ lượt>,<thời gian còn lại>"
 		* Các số thứ tự có ý nghĩa giống ở "RoomInfo".
 		* Thông tin bộ bài gồm : "<n - số lượng bài>,<lá bài 0>, <lá bài 1>,...,<lá bài n - 1>". Các lá bài đã được sắp xếp từ nhỏ đến lớn.
-			** <lá bài - i> là một số nguyên [0 - 52). Sử dụng class Card trong server để Parse số này. Sau đó lấy 2 thuộc tính là number và suit.
+			** <lá bài - i> là một cặp giá trị <số_chất>. 
+		* Sau khi nhận được gói tin này, thời gian còn lại client sẽ tự cập nhật, nhưng nếu có bất kì gói tin GameInfo nào được trả về lần nữa, Client phải thay đổi lại thời gian cho phù hợp với thời gian ở server. 
 		* Người chơi không ở trong phòng, hoặc không chơi thì <số là bài - i> == 0
-		* <cho phép bỏ lượt> có 2 giá trị : 0 - false, 1 - true.
-		* <Thông tin bài trên bàn> bao gồm thông tin bộ bài trên bàn trước đó + thông tin bộ bài vừa đánh ra.
+		* <cho phép bỏ lượt> có 2 giá trị : -1 - bỏ qua(không phải lượt của người này), 0 - không thể bỏ lượt, 1 - có thể bỏ lượt.
+		* <thời gian còn lại> tính bằng giây (chức năng chưa thêm vào).
+
+	- Ngoài ra, client sẽ liên tục nhận được 2 message có dạng:
+		* "OnTableInfo":<số lượng bộ bài đang trên bàn>,<thông tin các bộ bài trên bàn>.
+		* "Play:<chỉ số người chơi>,<thông tin bộ bài>".
+		* <chỉ số người chơi> có dạng giống ở "RoomInfo" và <thông tin bộ bài> có dạng giống ở GameInfo nhưng không có số lượng lá bài.
+		* Đương nhiên, ngay sau đó, "GameInfo" cũng sẽ được gửi về.
+
+	- Đôi khi client sẽ nhận message sau:
+		* "UpdateMoney:<số tiền "bị thay đổi" 0>,<số tiền bị thay đổi 1>,...,<số tiền bị thay đổi 3>
+		* Message này sẽ thông báo số tiền thay đổi của mỗi player.
+		* Sau khi message này được gửi, một RoomInfo sẽ được gửi sau đó để cập nhật số tiền mới cho các user.
+
+ 	- Khi game kết thúc, sẽ trả về "GameFinished:<chỉ số người thắng>".
+		* Client có nhiệm vụ hiển thị người thắng cuộc và hủy bỏ các trạng thái của game trên bàn.
 
 	- Đánh bài : "Play:<thông tin bộ bài>"
-		* Thông tin bộ bài có dạng như ở "GameInfo".
+		* Thông tin bộ bài có dạng như ở "GameInfo", nhưng không có số lượng lá bài.
 		* Nếu thành công, gửi về "Success:Play".
 
 	- Bỏ lượt : "Pass"
 		* Nếu thành công, gửi về "Success:Pass".
-
-	- Nếu có bất kỳ người chơi nào vừa đánh bài, kể cả bản thân, client sẽ nhận được message:
-		* "Play:<chỉ số người chơi>,<thông tin bộ bài>"
-		* <chỉ số người chơi> có dạng giống ở "RoomInfo" và <thông tin bộ bài> có dạng giống ở GameInfo.
-		* Đương nhiên, ngay sau đó, "GameInfo" cũng sẽ được gửi về.
-
-	- Nếu có bất kỳ sự thay đổi về tiền của các người chơi trong phòng, một message sẽ tự động được gửi:
-		* "Money:<sự thay đổi tiền - 0>,...,<sự thay đổi tiền - 3>".
-		* Chỉ số trên có ý nghĩa giống với chỉ số người chơi ở "RoomInfo".
-		* Nếu số tiền là dương, người đó được cộng tiền, nếu số tiền âm, người đó bị trừ tiền.
-		* Đương nhiên, "RoomInfo" sẽ được gửi ngay sau đó để cập nhật số tiền.
-
-	- Nếu game kết thúc, người chơi sẽ nhận được thông báo:
-		* "Winner:<chỉ số người thắng>".
-		* <chỉ số người thắng> có cùng dạng với <chỉ số người chơi> ở "RoomInfo"
-		* Sau đó, client tự cập nhật lại giao diện phòng (xóa tất cả lá bài đang hiển thị).
-		* Đương nhiên, ngay sau đó "Money" và "GameInfo" sẽ được gửi.

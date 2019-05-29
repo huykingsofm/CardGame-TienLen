@@ -112,7 +112,8 @@ namespace Server
 
                 for (int i = 1; i < list.Count(); i++)
                 {
-                    if (list[i].number != list[i - 1].number + 1)
+                    if (list[i].number != list[i - 1].number + 1
+                        && (list[i].number != 1 || list[i - 1].number != 13) )
                         IsMulti = false;
                 }
 
@@ -137,7 +138,8 @@ namespace Server
                     }
                     else
                     {
-                        if (list[i].number != list[i - 1].number + 1)
+                        if (list[i].number != list[i - 1].number + 1
+                        && (list[i].number != 1 || list[i - 1].number != 13))
                             IsMultiDouble = false;
                     }
                 }

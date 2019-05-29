@@ -36,26 +36,32 @@ namespace Server{
         private Game game;
         private Lobby lobby;
         private int[] PlayerStatus; /*  
-                                    #    0 - không trong phòng
-                                    #    1 - có trong phòng nhưng chưa sẵn sàng
-                                    #    2 - có trong phòng và đã sẵn sàng
-                                    #    3 - có trong phòng và đang chơi game
-                                    */
-        private static int NOT_IN_ROOM = 0;
-        private static int NOT_READY = 1;
-        private static int READY = 2;
-        private static int PLAYING = 3;
+                                     *    0 - không trong phòng
+                                     *    1 - có trong phòng nhưng chưa sẵn sàng
+                                     *    2 - có trong phòng và đã sẵn sàng
+                                     *    3 - có trong phòng và đang chơi game
+                                     */
+        private int RoomStatus;     /*
+                                     *    Phòng đang đợi (WAITING)
+                                     *    Phòng đang chơi (PLAYING)
+                                     */
+        public const int NOT_IN_ROOM = 0;
+        public const int NOT_READY = 1;
+        public const int READY = 2;
+        public const int PLAYING = 3;
+        public const int WAITING = 4;
         protected Room(Lobby lobby){
             if (lobby == null)
                 throw new Exception("Lobby can not be a null instances");
 
             this.host = -1;
             this.lastwinner = -1;
-            this.BetMoney = 0;
+            this.BetMoney = 1;
             this.game = null;
             this.PlayerStatus = new int[]{0, 0, 0, 0}; // NOT_IN_ROOM
             this.clients = new Client[]{null, null, null, null};
             this.lobby = lobby;
+            this.RoomStatus = Room.WAITING;
         }
         public static Room Create(Lobby lobby){
             Room room = null;
@@ -119,14 +125,40 @@ namespace Server{
             return index;
         }
         public void Ready(Client player){
+            if (this.RoomStatus == Room.PLAYING)
+                throw new Exception("Everybody are playing, please wait for ending");
+
+            int index = this.clients.Where(player);
+            
+            if (index == this.host)
+                throw new Exception("You are the host, it is unnecessary to ready");
+
+            if (index < 0 || index >= this.clients.Count() || this.clients[index] == null)
+                throw new Exception("Player[{0}] do not exist in room");
+            
+            if (this.PlayerStatus[index] != Room.NOT_READY)
+                throw new Exception("Player cannot ready now");
+
+            this.PlayerStatus[index] = Room.READY;
+        }
+        public void UnReady(Client player){
+            if (this.RoomStatus == Room.PLAYING)
+                throw new Exception("Everybody are playing, please wait for ending");
+
             int index = this.clients.Where(player);
             
             if (index < 0 || index >= this.clients.Count() || this.clients[index] == null)
                 throw new Exception("Player[{0}] do not exist in room");
-            
-            this.PlayerStatus[index] = Room.READY;
+
+            if (this.PlayerStatus[index] != Room.READY)
+                throw new Exception("Player cannot unready now");
+
+            this.PlayerStatus[index] = Room.NOT_READY;
         }
         public void SetBetMoney(Client client, int betmoney){
+            if (this.RoomStatus == Room.PLAYING)
+                throw new Exception("Everybody are playing, dont set bet money");
+
             int index = this.clients.Where(client);
 
             if (index != this.host)
@@ -140,20 +172,16 @@ namespace Server{
 
             this.BetMoney = betmoney;
         }
-        public void UnReady(Client player){
-            int index = this.clients.Where(player);
-            
-            if (index < 0 || index >= this.clients.Count() || this.clients[index] == null)
-                throw new Exception("Player[{0}] do not exist in room");
-            this.PlayerStatus[index] = Room.NOT_READY;
-        }
         public Game StartGame(){
+            if (this.RoomStatus == Room.PLAYING)
+                throw new Exception("Room are playing");
+                
             if (this.clients.CountRealInstance() < 2)
                 throw new Exception("It need at least 2 player to start game");
 
             lock(this.clients){
                 for (int i = 0; i < this.clients.Count(); i++)
-                    if (this.clients[i] != null && this.PlayerStatus[i] != Room.READY)
+                    if (i != this.host && this.clients[i] != null && this.PlayerStatus[i] != Room.READY)
                         throw new Exception("Someone hasn't been ready yet");
                 
                 this.game = Game.Create(this.clients, this.lastwinner);
@@ -163,7 +191,24 @@ namespace Server{
                         this.PlayerStatus[i] = Room.PLAYING;
             }
             
+            this.RoomStatus = Room.PLAYING;
             return this.game;
+        }
+
+        public void StopGame(int winner){
+            if (this.RoomStatus == Room.WAITING)
+                throw new Exception("Room are waiting, no game to stop");
+
+            lock(this.clients){
+                for (int i = 0; i < this.clients.Count(); i++)
+                    if (this.clients[i] != null)
+                        this.PlayerStatus[i] = Room.NOT_READY;
+                
+                this.game = null;
+            }
+            
+            this.lastwinner = winner;
+            this.RoomStatus = Room.WAITING;
         }
         public void Destroy(){
             foreach(var client in this.clients)

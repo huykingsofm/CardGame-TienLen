@@ -106,5 +106,19 @@ namespace Server
 
             return arr[index];
         }
+
+        public static T[] Take<T>(this T[] t, int start, int end){
+            if (end < 0)
+                end = t.Count() + end;
+
+            return t.Skip(start).Take(end - start + 1).ToArray();
+        }
+
+        public static bool IsAll(this int[] arr, int obj){
+            foreach(int item in arr)
+                if (item != obj)
+                    return false;
+            return true;
+        }
     }
 }

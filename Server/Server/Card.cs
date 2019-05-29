@@ -41,6 +41,27 @@ namespace Server
             card.suit = value % 4 + 1;
             return card;
         }
+
+        static public Card Create(string format){
+            string[] elements = format.Split('_');
+            if (elements.Count() != 2)
+                throw new Exception("The string must be in format number_suit");
+
+            int number, suit;
+            try{
+                number = Int32.Parse(elements[0]);
+                suit = Int32.Parse(elements[1]);
+            }
+            catch(Exception e){
+                Console.WriteLine(e);
+                return null;
+            }
+            Card card = new Card();
+            card.number = number;
+            card.suit = suit;
+            
+            return card;
+        }
         public int ToInt()
         {
             if (this.number < 1 || this.number > 13
