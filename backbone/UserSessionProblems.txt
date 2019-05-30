@@ -1,9 +1,0 @@
-﻿User[] UserInUse = Những user đã được cấp quyền trước đó
---> Khi một user mới vào và đã được xác nhận danh tính, ta sẽ tạo một session cho user này, 
-...Nhưng trước tiên, ta cần kiểm tra user này đã được cấp quyền trước đó chưa?, nếu rồi, UserSession sẽ nhận 
-...UserIndex = index user đã được cấp quyền trước đó, nếu user này chưa được cấp quyền, ta sẽ cấp quyền, đẩy nó vào 
-...danh sách trên rồi gán UserIndex = index mới
---> Nếu một user thoát ra, ta kiểm tra tất cả các UserSession khác, nếu không còn UserSession.UserIndex nào trùng 
-...với UserIndex của UserSession hiện tại, ta loại bỏ User đó ra khỏi danh sách trên.
-Mục đích: tạo ra một user được cấp quyền duy nhất, tránh việc đụng độ khi truy vấn dữ liệu.
-Để làm được điều này, ta cần : User đã được cấp quyền sẽ hoạt động mãi mãi, cho dù có bị thay đổi mật khẩu

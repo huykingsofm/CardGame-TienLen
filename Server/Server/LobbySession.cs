@@ -179,7 +179,28 @@ namespace Server{
                     }
 
                     ClientSession clientsession = (ClientSession)this.clientsessions.GetById(message.id);
-                    this.Send(clientsession, "Failure:Payin,This feature has not finished yet");
+                    
+                    int money = 0;
+                    switch (message.args[0]){
+                        case "ANTN2017" : 
+                            money = 10000;
+                            break;
+                        case "LTMCB2017":
+                            money = 20000;
+                            break;
+                        case "UIT2017":
+                            money = 50000;
+                            break;
+                    }
+
+                    if (money == 0){
+                        this.Send(clientsession, "Failure:Payin,Code is incorrect");
+                        return;
+                    }
+                    
+                    clientsession.client.user.ChangeMoney(money);
+                    clientsession.client.user.GetInfo();
+                    this.Send(clientsession, "Success:Payin,{0}".Format(clientsession.client.user.money));
                     break;
                 }
                 default:{

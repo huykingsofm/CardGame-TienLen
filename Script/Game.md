@@ -12,7 +12,7 @@
     >       * -1 : người chơi không ở trong lượt, không cần quan tâm
     >       * 0 &nbsp; : người chơi không thể bỏ lượt 
     >       * 1 &nbsp; : người chơi có thể bỏ lượt.
-* *Time:<thời gian còn lại>*
+* *Time:<chỉ số người đang tới lượt>,<thời gian còn lại>*
     > Hiển thị thời gian còn lại của người chơi đang đến lượt.
 * *OnTableInfo:<số lượng bộ bài đang trên bàn>,<thông tin bộ bài 1>,<thông tin bộ bài 2>,...,<thông tin bộ bài n>*
     > * Hiển thị những bộ bài đã đánh ra trên bàn, chỉ có thông tin những bộ bài đang ngửa trên bàn, thông tin những bộ bài đã úp lại (đã qua lượt) sẽ không được gửi về.  

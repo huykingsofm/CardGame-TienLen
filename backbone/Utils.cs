@@ -1,4 +1,0 @@
-class utils{
-	static hash();
-
-}
