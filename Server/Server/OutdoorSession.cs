@@ -78,7 +78,7 @@ namespace Server{
                     }
 
                     if (this.outdoor.clients[index].IsLogin() == false){
-                        this.Send(this.clientsessions[index], "Failure:JoinLobby,Please log in before");
+                        this.Send(this.clientsessions[index], "Failure:Login,Please log in before");
                         return;
                     }
 
@@ -89,7 +89,7 @@ namespace Server{
                     }
                     catch(Exception e){
                         this.WriteLine(e.Message);
-                        this.Send(this.clientsessions[index], "Failure:JoinLobby,Cannot join lobby");
+                        this.Send(this.clientsessions[index], "Failure:Login,{0}".Format(e.Message));
                         return;
                     }
                     break;
@@ -114,9 +114,10 @@ namespace Server{
                     }
                     break;
                 }
-                default:
+                default:{
                     this.WriteLine("Cannot identify message");
                     break;
+                }
             }
         }
         public void Add( ClientSession clientsession){

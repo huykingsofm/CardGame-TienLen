@@ -60,8 +60,8 @@ namespace Server{
         }
         public override void Solve(Object obj){
             /* 
-            # Loại bỏ các trường hợp ngoại lệ
-            */
+             * Loại bỏ các trường hợp ngoại lệ
+             */
 
             Message message = (Message) obj;
 
@@ -167,7 +167,6 @@ namespace Server{
                     this.UpdateForClients();
                     break;
                 }
-
                 case "Payin":{
                     if (this.clientsessions.FindById(message.id) == -1){
                         this.WriteLine("Message must be come from client");
@@ -183,9 +182,10 @@ namespace Server{
                     this.Send(clientsession, "Failure:Payin,This feature has not finished yet");
                     break;
                 }
-                default:
+                default:{
                     this.WriteLine("Cannot identify message");
                     break;
+                }
             }
         }
         public void UpdateForClients(){
@@ -212,7 +212,6 @@ namespace Server{
         public override string ToString(){
             return this.lobby.ToString();
         }
-
         public override void Destroy(string mode = "normal"){
             foreach(var room in this.roomsessions)
                 if (room != null)

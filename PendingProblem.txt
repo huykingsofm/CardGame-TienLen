@@ -1,0 +1,6 @@
+﻿+ Timeout.
++ Xử lý người đang chơi mà đang thoát ra.
++ Cho phép dùng AI.
++ Client trở lại nếu bị mất kết nối.
++ Cân bằng tải.
++ Nạp tiền.(Pending...).
