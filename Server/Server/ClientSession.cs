@@ -514,6 +514,20 @@ namespace Server{
                     this.client.Send(message.MessageOnly());
                     break;
                 }
+                case "Time":{
+                    if (this.gamesession == null || message.id != this.gamesession.id){
+                        this.WriteLine("Message must come from Game");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 2){
+                        this.WriteLine("Message must have 2 parameters");
+                        return;
+                    }
+
+                    this.client.Send(message.MessageOnly());
+                    break;
+                }
                 default:{
                     this.WriteLine("Cannot identify message!");
                     break;

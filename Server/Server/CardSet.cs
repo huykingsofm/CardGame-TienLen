@@ -146,6 +146,12 @@ namespace Server
                 str.Add( listcard[i].ToString());
             return String.Join("," , str);
         }
+        public string ToVector(){
+            List<int> list = new List<int>();
+            foreach (var c in this.cards)
+                list.Add(c ? 1 : 0);
+            return String.Join(' ', list);
+        }
         public CardSet Clone()
         {
             CardSet dummy = new CardSet();

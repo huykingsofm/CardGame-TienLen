@@ -9,16 +9,15 @@ using System.Text;
 namespace Server{
     public class GameSession : Session{
         /* 
-        # Mục đích : Đại diện cho game dưới dạng một thực thể phản ứng nhanh.
-        # 
-        */
-        Game game;
-        ClientSession[] clientsessions;
-        int[] index;
-        int BetMoney;
-        int RemainTime;
+         * Mục đích : Đại diện cho game dưới dạng một thực thể phản ứng nhanh.
+         * 
+         */
+        private Game game;
+        private ClientSession[] clientsessions;
+        private int BetMoney;
+        private bool TimerStop;
         public override string Name => "GameSession";
-        
+        private Thread timerthread;
         RoomSession room;
 
         protected GameSession(RoomSession room, ClientSession[] clients, Game game, int BetMoney) : base(){
@@ -42,22 +41,34 @@ namespace Server{
             return gamesession;
         }
 
-        private void Timer(int time, int iplayer){
-            this.RemainTime = time; // turn off
+        private void Timer(){
+            this.TimerStop = false; // turn off
             int interval_time = 1000;
-            time *= 1000;
-            while(time > 0 && this.RemainTime == 0){
+            int time = Game.TIMEOUT;
+            int iplayer = this.game.whoturn;
+            while(time > 0 && this.TimerStop == false){
                 Thread.Sleep(interval_time);
-                time -= interval_time;
-                this.RemainTime -= 1;
+                time -= (int)(interval_time / 1000);
+                this.Send(this, "Time:{0},{1}".Format(iplayer, time) );
             }
-            if (this.RemainTime == 0)
+            if (this.TimerStop == false)
                 this.Send(this, "Timeout:{0}".Format(iplayer));
+        }
+
+        private Thread StartTimer(){
+            this.timerthread = new Thread(this.Timer);
+            this.timerthread.Start();
+            return this.timerthread;
+        }
+
+        private void StopTimer(){
+            this.TimerStop = true;
+            while (this.timerthread.IsAlive == true);
         }
         public override void Solve(Object obj){
             Message message = (Message) obj;
 
-            if (message.which != "ClientSession")
+            if (message.which != "ClientSession" && message.id != this.id)
                 throw new Exception("Game cannot solve message from " + message.who);
 
             switch(message.name){
@@ -108,6 +119,7 @@ namespace Server{
                         return;
                     }
 
+                    this.StopTimer();
                     this.Send(this.clientsessions[index], "Success:Play");
                     
                     string playingmessage = "PlayingCard:{0},{1}".
@@ -123,6 +135,8 @@ namespace Server{
                         // Game đã kết thúc
                         this.Send(this.room, "GameFinished:{0}".Format(res.Last()));
                     }
+                    else
+                        this.StartTimer();
                     break;
                 }
                 case "Pass":{
@@ -138,6 +152,73 @@ namespace Server{
                     int index = this.clientsessions.FindById(message.id); 
                     if (index == -1) {
                         this.WriteLine("This message must be come from client");
+                        return;
+                    }
+
+                    if (index != this.game.whoturn){
+                        this.WriteLine("This is turn of player[{0}]", this.game.whoturn);
+                        return;
+                    }
+
+                    List<int> ret = null;
+                    CardSet moveset = null;
+                    try{
+                        ret = this.game.Pass(ref moveset);
+                    }
+                    catch(Exception e){
+                        this.Send(this.clientsessions[index], "Failure:Pass,{0}".Format(e.Message));
+                        return;
+                    }
+
+                    this.StopTimer();
+                    this.Send(this.clientsessions[index], "Success:Pass");
+
+                    if (ret != null){
+                        int[] coef_money = ret.ToArray().Take(0, - 2);
+                        this.UpdateMoneyForClients(coef_money); 
+                    }
+
+                    if (moveset != null){
+                        string playingmessage = "PlayingCard:{0},{1}".
+                            Format(index, moveset.ToString(sum:false));
+                        this.Send(this.room, playingmessage);
+                    }
+
+                    this.Send(this.room, "UpdateGame");
+                    
+                    if (ret != null && ret.Last() != -1)
+                        this.Send(this.room, "GameFinished:{0}".Format(ret.Last()));
+                    else
+                        this.StartTimer();
+                    break;
+                }
+                case "Timeout":{
+                    /*
+                    # Nhận thông báo đã hết thời gian chơi của người chơi 
+                    # .. hiện tại.
+                    # Cần kiểm tra chỉ số của người chơi trong Timeout, nếu 
+                    # .. khác với người chơi hiện tại thì bỏ qua.
+                    # Thực hiện giống Message "Pass"
+                    */
+                    
+                    if (this.id != message.id) {
+                        this.WriteLine("This message must be come from Game");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("Message must have a parameter");
+                        return;
+                    }
+
+                    int index = 0;
+                    if (Int32.TryParse(message.args[0], out index) == false){
+                        this.WriteLine("Parameter is incorrect");
+                        return;
+                    }
+
+                    if (this.clientsessions[index] == null){
+                        this.WriteLine("This client is not exist in game");
                         return;
                     }
 
@@ -173,18 +254,56 @@ namespace Server{
                     
                     if (ret != null && ret.Last() != -1)
                         this.Send(this.room, "GameFinished:{0}".Format(ret.Last()));
+                    else
+                        this.StartTimer();
                     break;
                 }
-                case "Timeout":
-                    /*
-                    # Nhận thông báo đã hết thời gian chơi của người chơi 
-                    # .. hiện tại.
-                    # Cần kiểm tra chỉ số của người chơi trong Timeout, nếu 
-                    # .. khác với người chơi hiện tại thì bỏ qua.
-                    # Thực hiện giống Message "Pass"
-                    */
+                case "Time":{
+                    if (this.id != message.id){
+                        this.WriteLine("Message must come from Game");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 2){
+                        this.WriteLine("Message must have 2 parameters");
+                        return;
+                    }
+
+                    int iplayer = 0;
+                    int remaintime = 0;
+
+                    if (Int32.TryParse(message.args[0], out iplayer) == false ||
+                    Int32.TryParse(message.args[1], out remaintime) == false){
+                        this.WriteLine("Parameters is incorrect");
+                        return;
+                    }
+
+                    if (iplayer != this.game.whoturn){
+                        this.WriteLine("This is turn if {0} but {1}".Format(this.game.whoturn, iplayer));
+                        return;
+                    }
+
+                    if (remaintime < 0 || remaintime > Game.TIMEOUT){
+                        this.WriteLine("Time is out of range");
+                        return;
+                    }
+
+                    if (this.clientsessions[iplayer] == null){
+                        this.WriteLine("This client is not exist in game");
+                        return;
+                    }
+
+                    for (int i = 0; i < this.clientsessions.Count(); i++)
+                        if (this.clientsessions[i] != null){
+                            int index = (4 + iplayer - i) % 4;
+                            this.Send(this.clientsessions[i], "Time:{0},{1}".
+                                Format(index, message.args[1]));
+                        }
+
                     break;
+                }
                 case "Signout":
+
                     /*
                     # Nhận thông báo đã thoát của người chơi
                     # Thiết lập giá trị ảo cho người chơi
@@ -199,6 +318,7 @@ namespace Server{
         public override void Start(){
             this.UpdateForClients();
             base.Start();
+            this.StartTimer();
         }
 
         public void UpdateMoneyForClients(int[] coef_money){
@@ -249,10 +369,12 @@ namespace Server{
         public void WriteLog(){
             this.game.WriteLog();
         }
-
+        public override void Destroy(string mode = "normal"){
+            this.WriteLog();
+            base.Destroy(mode);
+        }
         public string GameInfo(int index){
-            string ret = "{0},{1}".Format(this.game.ToString(index), this.RemainTime);
-            return ret;
+           return this.game.ToString(index);
         }
         public string OnTableInfo(){
             return this.game.OnTableInfo();

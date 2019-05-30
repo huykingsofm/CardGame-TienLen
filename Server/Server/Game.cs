@@ -22,11 +22,14 @@ namespace Server{
         #             + Có thể lưu trữ nhật ký khi kết thúc game.
         */
 
+        public const int TIMEOUT = 30;
         public const string DefaultLogDir = "../GameLog/"; 
         private CardSet[] initilization; // Lưu lại bộ bài khởi tạo của mỗi người chơi
         private CardSet[] cards; // Lưu bộ bài hiện tại của mỗi người chơi.
         private Client[] players; // Lưu thông tin người chơi
+        private int Starter;
         private List<Move> HistoryMove; // Lưu lịch sử nước đi.
+        private List<List<int>> HistoryResult;
         public int whoturn{get; private set;} // Lưu chỉ số của người hiện tại cần đánh bài.
         private Move lastmove; // Nước đi cuối cùng được đánh ra.
         private int lastplayer; // Chỉ số của người chơi cuối cùng đánh bài.
@@ -65,9 +68,11 @@ namespace Server{
             this.LogDir = dir.TrimEnd(new char[]{'/', '\\'}) + "/";
 
             this.HistoryMove = new List<Move>();
+            this.HistoryResult = new List<List<int>>();
             this.onboardsets = new List<CardSet>();
             this.whoturn = Starter;
             this.lastplayer = Starter;
+            this.Starter = Starter;
             this.lastmove = null;
             this.SpecialChain = 0;
             this.EndGameSignal = false;
@@ -225,7 +230,8 @@ namespace Server{
             this.lastplayer = this.whoturn;
             this.onboardsets.Add(move.GetMoveSet());
             this.Next();
-    
+
+            this.HistoryResult.Add(ret);
             return ret;
         }
         private void Next(){
@@ -260,6 +266,7 @@ namespace Server{
             else{
                 this.Next();
                 this.HistoryMove.Add(null);
+                this.HistoryResult.Add(null);
             }
 
             if (this.whoturn == this.lastplayer){ 
@@ -344,46 +351,54 @@ namespace Server{
             Directory.CreateDirectory(this.LogDir);
 
             // Generate random folder name which contains 2 log files
-            string GameLogDirName = $@"{DateTime.Now.Ticks}";
+            string GameLogDirName = DateTime.Now.Ticks.ToString();
 
             if (File.Exists(this.LogDir + "logname.log") == false){
                 File.Create(this.LogDir + "logname.log");
             }
 
             // Write above folder name to file "logname.log"
-            FileStream f = new FileStream(
-                this.LogDir + "logname.log",
-                FileMode.Append, 
-                FileAccess.Write
-            );
-
-            byte[] bytetmp = Encoding.ASCII.GetBytes(GameLogDirName + "\n");
-            f.Write(bytetmp, 0, bytetmp.Count());
-            f.Close();
+            using(var f = new StreamWriter(this.LogDir + "logname.log", append:true)){
+                f.WriteLine(GameLogDirName);
+            }
 
             string dir = this.LogDir + GameLogDirName;
+            Directory.CreateDirectory(dir);
 
             string InitPath = dir + "/.init"; 
             string MovePath = dir + "/.move";
+            string ResPath  = dir + "/.res";
 
-            f = new FileStream(InitPath, FileMode.CreateNew, FileAccess.Write);
-            foreach(CardSet tmp in this.initilization){
-                byte[] bytearray = Encoding.ASCII.GetBytes(tmp.ToString() + "\n");
-                f.Write(bytearray, 0, bytearray.Count());
+            using (var f = new StreamWriter(InitPath, append:true)){
+                f.WriteLine(this.Starter);
+
+                foreach(CardSet tmp in this.initilization)
+                    if(tmp != null)
+                        f.WriteLine(tmp.ToVector());
+                    else
+                        f.WriteLine(CardSet.Create((List<Card>) null).ToVector());
             }
-            f.Close();
 
-            f = new FileStream(MovePath, FileMode.CreateNew, FileAccess.Write);
-
-            foreach(Move tmp in this.HistoryMove){
-                string str = "";
-                if (tmp != null)
-                    str = tmp.GetMoveSet().ToString();
-                str += "\n";
-                byte[] bytearray = Encoding.ASCII.GetBytes(str);
-                f.Write(bytearray, 0, bytearray.Count());
+            using (var f = new StreamWriter(MovePath, append:true)){
+                foreach(Move tmp in this.HistoryMove){
+                    string str = "";
+                    if (tmp != null)
+                        str = tmp.GetMoveSet().ToVector();
+                    else
+                        str = CardSet.Create((List<Card>) null).ToVector();
+                    f.WriteLine(str);
+                }
             }
-            f.Close();
+            using (var f = new StreamWriter(ResPath, append:true)){
+                foreach(var tmp in this.HistoryResult){
+                    string str = "";
+                    if (tmp != null)
+                        str = tmp.ToArray().Take(0, -2).ToStringE();
+                    else
+                        str = new int[]{0, 0, 0, 0}.ToStringE();
+                    f.WriteLine(str);
+                }
+            }
         }
 
         public CardSet[] GetInitCardSets(){

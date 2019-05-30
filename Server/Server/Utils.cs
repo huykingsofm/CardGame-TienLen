@@ -120,5 +120,13 @@ namespace Server
                     return false;
             return true;
         }
+
+        public static string ToStringE<T>(this T[] arr, string delimiter = " "){
+            List<String> strarr = new List<String>();
+            foreach(var element in arr)
+                strarr.Add(element.ToString());
+            
+            return String.Join(delimiter, strarr);
+        }
     }
 }
