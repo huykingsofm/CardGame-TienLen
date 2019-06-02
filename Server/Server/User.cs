@@ -58,6 +58,7 @@ namespace Server
             this.username = null;
             this.money = 0;
             this.permission = new UserPermission(); // Không có quyền gì
+            this.__lock__ = new _lock_();
         }
         public User(string username, int money) : this(){ 
             // Tạo user với thông tin ảo và không cấp quyền

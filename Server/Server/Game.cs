@@ -134,11 +134,12 @@ namespace Server{
             using(var f = new StreamWriter(inputfile)){
                 int index = this.whoturn;
                 f.WriteLine(this.cards[this.whoturn].ToVector());
+                f.WriteLine(this.lastmove.GetMoveSet().ToVector());
 
                 for (int add = 1; add < this.players.Count(); add++){
                     int i = (index + add) % this.players.Count();
                     if (this.cards[i] == null)
-                        f.WriteLine("0");
+                        f.WriteLine("#");
                     else
                         f.WriteLine(this.cards[i].Count().ToString());    
                 }

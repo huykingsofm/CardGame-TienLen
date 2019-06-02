@@ -145,6 +145,12 @@ namespace Server
             return true;
         }
 
+        public static bool IsAny(this int[] arr, int obj){
+            foreach(int item in arr)
+                if (item == obj)
+                    return false;
+            return true;
+        }
         public static string ToStringE<T>(this T[] arr, string delimiter = " "){
             List<String> strarr = new List<String>();
             foreach(var element in arr)
