@@ -48,6 +48,12 @@
             this.lblPlayerName0 = new System.Windows.Forms.Label();
             this.btnStartGame = new System.Windows.Forms.Button();
             this.btnReady = new System.Windows.Forms.Button();
+            this.lblRemainCards3 = new System.Windows.Forms.Label();
+            this.lblRemainCards2 = new System.Windows.Forms.Label();
+            this.lblRemainCards1 = new System.Windows.Forms.Label();
+            this.lblHost1 = new System.Windows.Forms.Label();
+            this.lblhost2 = new System.Windows.Forms.Label();
+            this.lblhost3 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pboxcoin1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pboxRemainCards1)).BeginInit();
@@ -303,6 +309,72 @@
             this.btnReady.Text = "READY";
             this.btnReady.UseVisualStyleBackColor = true;
             // 
+            // lblRemainCards3
+            // 
+            this.lblRemainCards3.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblRemainCards3.Location = new System.Drawing.Point(1494, 391);
+            this.lblRemainCards3.Name = "lblRemainCards3";
+            this.lblRemainCards3.Size = new System.Drawing.Size(41, 39);
+            this.lblRemainCards3.TabIndex = 44;
+            this.lblRemainCards3.Text = "13";
+            this.lblRemainCards3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // lblRemainCards2
+            // 
+            this.lblRemainCards2.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblRemainCards2.Location = new System.Drawing.Point(775, 38);
+            this.lblRemainCards2.Name = "lblRemainCards2";
+            this.lblRemainCards2.Size = new System.Drawing.Size(41, 39);
+            this.lblRemainCards2.TabIndex = 44;
+            this.lblRemainCards2.Text = "13";
+            this.lblRemainCards2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // lblRemainCards1
+            // 
+            this.lblRemainCards1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblRemainCards1.Location = new System.Drawing.Point(110, 393);
+            this.lblRemainCards1.Name = "lblRemainCards1";
+            this.lblRemainCards1.Size = new System.Drawing.Size(41, 39);
+            this.lblRemainCards1.TabIndex = 44;
+            this.lblRemainCards1.Text = "13";
+            this.lblRemainCards1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // lblHost1
+            // 
+            this.lblHost1.BackColor = System.Drawing.Color.Transparent;
+            this.lblHost1.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblHost1.ForeColor = System.Drawing.Color.Yellow;
+            this.lblHost1.Location = new System.Drawing.Point(174, 325);
+            this.lblHost1.Name = "lblHost1";
+            this.lblHost1.Size = new System.Drawing.Size(54, 39);
+            this.lblHost1.TabIndex = 45;
+            this.lblHost1.Text = "C";
+            this.lblHost1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // lblhost2
+            // 
+            this.lblhost2.BackColor = System.Drawing.Color.Transparent;
+            this.lblhost2.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblhost2.ForeColor = System.Drawing.Color.Yellow;
+            this.lblhost2.Location = new System.Drawing.Point(1000, 12);
+            this.lblhost2.Name = "lblhost2";
+            this.lblhost2.Size = new System.Drawing.Size(54, 39);
+            this.lblhost2.TabIndex = 45;
+            this.lblhost2.Text = "C";
+            this.lblhost2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // lblhost3
+            // 
+            this.lblhost3.BackColor = System.Drawing.Color.Transparent;
+            this.lblhost3.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblhost3.ForeColor = System.Drawing.Color.Yellow;
+            this.lblhost3.Location = new System.Drawing.Point(1336, 325);
+            this.lblhost3.Name = "lblhost3";
+            this.lblhost3.Size = new System.Drawing.Size(54, 39);
+            this.lblhost3.TabIndex = 45;
+            this.lblhost3.Text = "C";
+            this.lblhost3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
             // frmRoom
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -310,6 +382,12 @@
             this.BackgroundImage = global::client.Properties.Resources.table_background;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.ClientSize = new System.Drawing.Size(1564, 921);
+            this.Controls.Add(this.lblhost3);
+            this.Controls.Add(this.lblhost2);
+            this.Controls.Add(this.lblHost1);
+            this.Controls.Add(this.lblRemainCards1);
+            this.Controls.Add(this.lblRemainCards2);
+            this.Controls.Add(this.lblRemainCards3);
             this.Controls.Add(this.pboxCoin0);
             this.Controls.Add(this.lblRemainCoin0);
             this.Controls.Add(this.pbox0);
@@ -383,5 +461,11 @@
         private System.Windows.Forms.Label lblPlayerName0;
         private System.Windows.Forms.Button btnStartGame;
         private System.Windows.Forms.Button btnReady;
+        private System.Windows.Forms.Label lblRemainCards3;
+        private System.Windows.Forms.Label lblRemainCards2;
+        private System.Windows.Forms.Label lblRemainCards1;
+        private System.Windows.Forms.Label lblHost1;
+        private System.Windows.Forms.Label lblhost2;
+        private System.Windows.Forms.Label lblhost3;
     }
 }

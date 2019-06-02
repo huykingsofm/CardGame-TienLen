@@ -30,6 +30,7 @@ namespace client {
         public static String JOIN_ROOM(int index) { return ("JOIN:" + index); }
         public static String NEXT_TURN() { return "NEXT"; }
         public static String READY_GAME() { return "Ready"; }
+        public static String UNREADY_GAME() { return "UnReady"; }
         public static String START_GAME() { return "Start"; }
         public static String PLAY(String cards) { return "Play:" + cards; }
         public static String PLAY(String[] cards) {

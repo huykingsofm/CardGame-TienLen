@@ -21,31 +21,78 @@ namespace client {
 
     public class Player {
         private bool _hasTurn;
+        private bool _isHost;
         private TcpClientModel _client;
         private Buttons _btns;
         private String[] _cards;
         private int _remainTime;
+        public bool isReady { get; set; }
 
         public Player() { }
         public Player(TcpClientModel client) {
             this._hasTurn = false;
+            this._isHost = false;
             this._client = client;
             this._cards = null;
             this._btns = null;
             this._remainTime = 30;
+            this.isReady = false;
         }
 
         public Player(TcpClientModel client, Button btnPlay, Button btnSkip) {
             this._hasTurn = false;
+            this._isHost = false;
             this._client = client;
             this._cards = null;
             this._btns = new Buttons(btnPlay, btnSkip);
             this._remainTime = 30;
+            this.isReady = false;
+        }
+
+        public bool isHost { get => this._isHost; set { this._isHost = value; } }
+        public bool hasTurn { get => this._hasTurn; }
+
+        public void ResetTurn() {
+            this._hasTurn = true;
+        }
+
+        public void UpdateCards(String cards) {
+            try {
+                String[] c = cards.Split(',');
+                int length = c.Length;
+
+                this._cards = new String[length];
+                Array.Copy(c, 0, this._cards, 0, length);
+            } catch(Exception ex) {
+                //do something
+            }
+        }
+
+        public void UpdateCards(String[] cards) {
+            try {
+                int length = cards.Length;
+                this._cards = new String[length];
+
+                Array.Copy(cards, 0, this._cards, 0, length);
+
+            } catch(Exception ex) {
+                //do something
+            }
         }
 
         public void Ready() {
             try {
                 String req = RequestFormat.READY_GAME();
+
+                this._client.SendRequest(req);
+            } catch(Exception ex) {
+                //do something
+            }
+        }
+
+        public void UnReady() {
+            try {
+                String req = RequestFormat.UNREADY_GAME();
 
                 this._client.SendRequest(req);
             } catch(Exception ex) {
