@@ -22,22 +22,25 @@ namespace Server{
                 this.cards[i] = true;
             list = this.ToList();
         }
-        public CardSet[] Divive(Client[] players){
-            int NumberOfPlayer = players.CountRealInstance();
+        public CardSet[] Divive(int[] status){
+            if (status.Count() != 4)
+                throw new Exception("Input must be a 4-element-array");
+
+            int NumberOfPlayer = status.CountDiff(0);
 
             if (NumberOfPlayer < 2 || NumberOfPlayer > 4)
                 throw new Exception("Not support for {0} player(s)".Format(NumberOfPlayer));
                
             CardSet[] sets = new CardSet[4];
             
-            list.Shuffle();
+            this.list.Shuffle();
             
             for (int i = 0; i < 4; i++)
-                if (players[i] != null && players[i].IsLogin()){
+                if (status[i] != 0){
                     sets[i] = CardSet.Create((List<Card>)null);
 
                     for (int j = 0; j < 13; j++){
-                        int value = list[i * 13 + j].ToInt();
+                        int value = this.list[i * 13 + j].ToInt();
                         sets[i].cards[value] = true;
                     }
                 }

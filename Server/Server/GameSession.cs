@@ -16,8 +16,10 @@ namespace Server{
         private ClientSession[] clientsessions;
         private int BetMoney;
         private bool TimerStop;
+        private bool AIStop;
         public override string Name => "GameSession";
         private Thread timerthread;
+        private Thread AIThread;
         RoomSession room;
 
         protected GameSession(RoomSession room, ClientSession[] clients, Game game, int BetMoney) : base(){
@@ -26,7 +28,6 @@ namespace Server{
             this.BetMoney = BetMoney;
             this.room = room;
         }
-
         public static GameSession Create(RoomSession room, ClientSession[] clients, Game game, int BetMoney){
             if (game == null || room == null)
                 return null;
@@ -40,7 +41,6 @@ namespace Server{
             GameSession gamesession = new GameSession(room, clients, game, BetMoney);
             return gamesession;
         }
-
         private void Timer(){
             this.TimerStop = false; // turn off
             int interval_time = 1000;
@@ -54,16 +54,39 @@ namespace Server{
             if (this.TimerStop == false)
                 this.Send(this, "Timeout:{0}".Format(iplayer));
         }
-
         private Thread StartTimer(){
             this.timerthread = new Thread(this.Timer);
             this.timerthread.Start();
             return this.timerthread;
         }
-
         private void StopTimer(){
             this.TimerStop = true;
             while (this.timerthread.IsAlive == true);
+        }
+        private void WaitForAI(){
+            this.AIStop = false;
+            while (this.AIStop == false){
+                while (this.game.GetStatus(this.game.whoturn) != Room.AI)
+                    Thread.Sleep(300);
+
+                try{
+                    CardSet cardset = this.game.GetMoveFromAI();
+                    if (this.Play(this.game.whoturn, cardset) == false)
+                        throw new Exception();
+                }
+                catch{
+                    this.Pass(this.game.whoturn);
+                }
+            }
+        }
+        private void StartWaitForAI(){
+            this.AIThread = new Thread(this.WaitForAI);
+            this.AIThread.Start();
+        }
+        private void StopWaitForAI(){
+            this.AIStop = true;
+            while(this.AIThread.IsAlive == true)
+                Thread.Sleep(300);
         }
         public override void Solve(Object obj){
             Message message = (Message) obj;
@@ -109,34 +132,7 @@ namespace Server{
                         this.WriteLine(e.Message);
                         return;
                     }
-
-                    List<int> res = null;
-                    try{
-                        res = this.game.Play(cardset);
-                    }
-                    catch(Exception e){
-                        this.Send(this.clientsessions[index], "Failure:Play,{0}".Format(e.Message));
-                        return;
-                    }
-
-                    this.StopTimer();
-                    this.Send(this.clientsessions[index], "Success:Play");
-                    
-                    string playingmessage = "PlayingCard:{0},{1}".
-                        Format(index, String.Join(',', message.args));
-                    this.Send(this.room, playingmessage);
-
-                    this.Send(this.room, "UpdateGame");
-                    
-                    int[] coef_money = res.ToArray().Take(0, -2);
-                    this.UpdateMoneyForClients(coef_money);
-
-                    if (res.Last() != -1){
-                        // Game đã kết thúc
-                        this.Send(this.room, "GameFinished:{0}".Format(res.Last()));
-                    }
-                    else
-                        this.StartTimer();
+                    this.Play(index, cardset);
                     break;
                 }
                 case "Pass":{
@@ -160,36 +156,7 @@ namespace Server{
                         return;
                     }
 
-                    List<int> ret = null;
-                    CardSet moveset = null;
-                    try{
-                        ret = this.game.Pass(ref moveset);
-                    }
-                    catch(Exception e){
-                        this.Send(this.clientsessions[index], "Failure:Pass,{0}".Format(e.Message));
-                        return;
-                    }
-
-                    this.StopTimer();
-                    this.Send(this.clientsessions[index], "Success:Pass");
-
-                    if (ret != null){
-                        int[] coef_money = ret.ToArray().Take(0, - 2);
-                        this.UpdateMoneyForClients(coef_money); 
-                    }
-
-                    if (moveset != null){
-                        string playingmessage = "PlayingCard:{0},{1}".
-                            Format(index, moveset.ToString(sum:false));
-                        this.Send(this.room, playingmessage);
-                    }
-
-                    this.Send(this.room, "UpdateGame");
-                    
-                    if (ret != null && ret.Last() != -1)
-                        this.Send(this.room, "GameFinished:{0}".Format(ret.Last()));
-                    else
-                        this.StartTimer();
+                    this.Pass(index);
                     break;
                 }
                 case "Timeout":{
@@ -217,45 +184,7 @@ namespace Server{
                         return;
                     }
 
-                    if (this.clientsessions[index] == null){
-                        this.WriteLine("This client is not exist in game");
-                        return;
-                    }
-
-                    if (index != this.game.whoturn){
-                        this.WriteLine("This is turn of player[{0}]", this.game.whoturn);
-                        return;
-                    }
-
-                    List<int> ret = null;
-                    CardSet moveset = null;
-                    try{
-                        ret = this.game.Pass(ref moveset);
-                    }
-                    catch(Exception e){
-                        this.Send(this.clientsessions[index], "Failure:Pass,{0}".Format(e.Message));
-                        return;
-                    }
-
-                    this.Send(this.clientsessions[index], "Success:Pass");
-
-                    if (ret != null){
-                        int[] coef_money = ret.ToArray().Take(0, - 2);
-                        this.UpdateMoneyForClients(coef_money); 
-                    }
-
-                    if (moveset != null){
-                        string playingmessage = "PlayingCard:{0},{1}".
-                            Format(index, moveset.ToString(sum:false));
-                        this.Send(this.room, playingmessage);
-                    }
-
-                    this.Send(this.room, "UpdateGame");
-                    
-                    if (ret != null && ret.Last() != -1)
-                        this.Send(this.room, "GameFinished:{0}".Format(ret.Last()));
-                    else
-                        this.StartTimer();
+                    this.Timeout(index);
                     break;
                 }
                 case "Time":{
@@ -288,11 +217,6 @@ namespace Server{
                         return;
                     }
 
-                    if (this.clientsessions[iplayer] == null){
-                        this.WriteLine("This client is not exist in game");
-                        return;
-                    }
-
                     for (int i = 0; i < this.clientsessions.Count(); i++)
                         if (this.clientsessions[i] != null){
                             int index = (4 + iplayer - i) % 4;
@@ -302,7 +226,7 @@ namespace Server{
 
                     break;
                 }
-                case "Signout":
+                case "Disconnect":{
 
                     /*
                     # Nhận thông báo đã thoát của người chơi
@@ -310,17 +234,118 @@ namespace Server{
                     # Khi đến lượt của người chơi đã thoát --> Pass
                     */
                     break;
-                default:
+                }
+                default:{
                     Console.WriteLine("Cannot solve this message from Game : {0}".Format(message));
                     break;
+                }
             }
+        }
+        private bool Play(int index, CardSet cardset){
+            if (index != this.game.whoturn)
+                throw new Exception (
+                    "This is turn of player[{0}] not {1}".Format(this.game.whoturn, index)
+                );
+
+            List<int> res = null;
+            try{
+                res = this.game.Play(cardset);
+            }
+            catch(Exception e){
+                if (this.clientsessions[index] != null) 
+                    this.Send(this.clientsessions[index], "Failure:Play,{0}".Format(e.Message));
+                else
+                    this.WriteLine("Failure:Play,{0}".Format(e.Message));
+                return false;
+            }
+
+            this.StopTimer();
+            this.Update(index, res, "Play", cardset.ToString(sum:false));
+            return true;
+        }        
+        private void Pass(int index){
+            if (index != this.game.whoturn)
+                throw new Exception("This is turn of {0} not {1}".Format(this.game.whoturn, index));
+
+            List<int> ret = null;
+            CardSet moveset = null;
+            try{
+                ret = this.game.Pass(out moveset);
+            }
+            catch(Exception e){
+                if (this.clientsessions[index] != null) 
+                    this.Send(this.clientsessions[index], "Failure:Pass,{0}".Format(e.Message));
+                else
+                    this.WriteLine("Failure:Pass,{0}".Format(e.Message));
+                return;
+            }
+
+            this.StopTimer();
+            string ms = moveset == null ? null : moveset.ToString(sum:false);
+            this.Update(index, ret, "Pass", ms);
+        }
+        private void Timeout(int index){
+            if (this.clientsessions[index] == null){
+                this.WriteLine("This client is not exist in game");
+                return;
+            }
+
+            if (index != this.game.whoturn){
+                this.WriteLine("This is turn of player[{0}]", this.game.whoturn);
+                return;
+            }
+
+            List<int> ret = null;
+            CardSet moveset = null;
+            try{
+                ret = this.game.Pass(out moveset);
+            }
+            catch(Exception e){
+                if (this.clientsessions[index] != null) 
+                    this.Send(this.clientsessions[index], "Failure:Pass,{0}".Format(e.Message));
+                else
+                    this.WriteLine("Failure:Pass,{0}".Format(e.Message));
+                return;
+            }
+
+            string ms = moveset == null ? null : moveset.ToString(sum:false);
+            this.Update(index, ret, "Pass", ms);
+        }
+        private void Update(int index, List<int> ret, string request, string moveset){
+            if (this.clientsessions[index] != null) 
+                    this.Send(this.clientsessions[index], "Success:{0}".Format(request));
+                else
+                    this.WriteLine("Success:{0}".Format(request));
+            
+
+            if (moveset != null){
+                string playingmessage = "PlayingCard:{0},{1}".
+                    Format(index, moveset);
+                this.Send(this.room, playingmessage);
+            }
+
+            if (ret != null){
+                int[] coef_money = ret.ToArray().Take(0, - 2);
+                this.UpdateMoneyForClients(coef_money); 
+            }
+
+            this.Send(this.room, "UpdateGame");
+                    
+            if (ret != null && ret.Last() != -1)
+                this.Send(this.room, "GameFinished:{0}".Format(ret.Last()));
+            else
+                this.StartTimer();
         }
         public override void Start(){
             this.UpdateForClients();
             base.Start();
             this.StartTimer();
+            this.StartWaitForAI();
         }
-
+        public override void Stop(string mode = "normal"){
+            this.StopWaitForAI();
+            base.Stop(mode);
+        }
         public void UpdateMoneyForClients(int[] coef_money){
             if (coef_money.IsAll(0) == false){
                 int sum = 0;
@@ -362,9 +387,6 @@ namespace Server{
                     this.Send(clientsessions[i], "GameInfo:{0}".Format(this.GameInfo(i) ) );
                 }
             }
-        }
-        public bool IsEnd(){
-            return this.game.EndGameSignal;
         }
         public void WriteLog(){
             this.game.WriteLog();

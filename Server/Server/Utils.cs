@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
+using System.Reflection;
 
 namespace Server
 {
@@ -89,6 +90,29 @@ namespace Server
 
             return -1;
         }
+        public static int Where(this int[] arr, int element){
+            // Return first element index in arr
+            for(int i = 0; i < arr.Count(); i++)
+                if (arr[i] == element)
+                    return i;
+
+            return -1;
+        }
+
+        public static int CountDiff(this int[] arr, int element){
+            int count = 0;
+            foreach(var item in arr)
+                if (item != element)
+                    count ++;
+            return count;
+        }
+        public static int Count(this int[] arr, int element){
+            int count = 0;
+            foreach(var item in arr)
+                if (item == element)
+                    count ++;
+            return count;
+        }
 
         public static int FindById(this Session[] arr, int id){
             for (int i = 0; i < arr.Count(); i++)
@@ -127,6 +151,9 @@ namespace Server
                 strarr.Add(element.ToString());
             
             return String.Join(delimiter, strarr);
+        }
+        public static string GetPathOfThis(){
+            return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         }
     }
 }

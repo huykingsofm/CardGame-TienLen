@@ -214,8 +214,15 @@ namespace Server{
                     }
 
                     ClientSession client = (ClientSession)this.clientsessions.GetById(message.id);
+                    int index = this.clientsessions.FindById(message.id);
                     if (client == null){
                         this.WriteLine("Client do not exist in room");
+                        return;
+                    }
+
+                    if (this.room.GetStatus(index) == Room.PLAYING 
+                    || this.room.GetStatus(index) == Room.AI){
+                        this.WriteLine("Client is playing, dont leave");
                         return;
                     }
 

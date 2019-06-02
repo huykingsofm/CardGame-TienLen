@@ -4,52 +4,58 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
+using System.Diagnostics;
 using System.Text;
 
 namespace Server{
-    public class Game : Object{
+    public class Game : Thing{
         /*
-        # Mục đích : Lưu trữ và thực thi một game tiến lên.
-        # Hoạt động : + Khi khởi tạo cần biết số lượng người chơi
-        #               .. và người chơi bắt đầu.
-        #             + Sau khi khởi tạo có thể bắt đầu chơi với 2
-        #               .. phương thức là Play(CardSet) và Pass().
-        #             + Mỗi phương thức đều thực hiện cho người chơi hiện
-        #               .. tại cần đánh bài. 
-        #             + Mỗi khi gọi Play() hoặc Pass() thành công, lượt
-        #               .. sẽ chuyển cho người tiếp theo.
-        #             + Game sẽ kết thúc khi bất kỳ người chơi nào hết bài.
-        #             + Có thể lưu trữ nhật ký khi kết thúc game.
+         * Mục đích : Lưu trữ và thực thi một game tiến lên.
+         * Hoạt động : + Khi khởi tạo cần biết số lượng người chơi
+         *               .. và người chơi bắt đầu.
+         *             + Sau khi khởi tạo có thể bắt đầu chơi với 2
+         *               .. phương thức là Play(CardSet) và Pass().
+         *             + Mỗi phương thức đều thực hiện cho người chơi hiện
+         *               .. tại cần đánh bài. 
+         *             + Mỗi khi gọi Play() hoặc Pass() thành công, lượt
+         *               .. sẽ chuyển cho người tiếp theo.
+         *             + Game sẽ kết thúc khi bất kỳ người chơi nào hết bài.
+         *             + Có thể lưu trữ nhật ký khi kết thúc game.
         */
 
-        public const int TIMEOUT = 30;
-        public const string DefaultLogDir = "../GameLog/"; 
-        private CardSet[] initilization; // Lưu lại bộ bài khởi tạo của mỗi người chơi
-        private CardSet[] cards; // Lưu bộ bài hiện tại của mỗi người chơi.
-        private Client[] players; // Lưu thông tin người chơi
-        private int Starter;
-        private List<Move> HistoryMove; // Lưu lịch sử nước đi.
-        private List<List<int>> HistoryResult;
-        public int whoturn{get; private set;} // Lưu chỉ số của người hiện tại cần đánh bài.
-        private Move lastmove; // Nước đi cuối cùng được đánh ra.
-        private int lastplayer; // Chỉ số của người chơi cuối cùng đánh bài.
-        private int SpecialChain; // = 0 nếu không có gì, > 0 nếu có chuỗi chặn heo.
-        private Card smallestcard = null;
-        private List<CardSet> onboardsets = null;
-        public bool EndGameSignal {get; private set;} // Tín hiệu kết thúc game.
-        public string LogDir; // Các file nhật ký game được lưu ở đây
+        public override string Name => "Game";
+        public const int TIMEOUT = 30;          //(second)
+        public const string DefaultLogDir = "../GameLog/";      // Thư mục lưu các nhật ký
+        private CardSet[] initilization;        // Lưu lại bộ bài khởi tạo của mỗi người chơi
+        private CardSet[] cards;                // Lưu bộ bài hiện tại của mỗi người chơi.
+        private Client[] players;               // Lưu thông tin người chơi
+        private int Starter;                    // Người chơi thực hiện nước đi đầu tiên
+        private List<Move> HistoryMove;         // Lưu lịch sử nước đi.
+        private List<List<int>> HistoryResult;  // Lịch sử kết quả
+        public int whoturn{get; private set;}   // Lưu chỉ số của người hiện tại cần đánh bài.
+        private Move lastmove;                  // Nước đi cuối cùng được đánh ra.
+        private int lastplayer;                 // Chỉ số của người chơi cuối cùng đánh bài.
+        private int SpecialChain;               // = 0 nếu không có gì, > 0 nếu có chuỗi chặn heo.
+        private Card smallestcard = null;       // lá bài nhỏ nhất mà người chơi hiện tại cần phải đánh
+        private List<CardSet> onboardsets = null;           // lưu lại những bộ bài đang ở trên bàn
+        public bool EndGameSignal {get; private set;}       // Tín hiệu kết thúc game.
+        public string LogDir;                   // các file nhật ký game được lưu ở đây
+        public int[] PlayerStatus{get; private set;}             /* trạng thái các player trong game
+                                                 * Sử dụng lại các trạng thái ở lớp Room
+                                                 */
 
-        private Game(Client[] players, int Starter, string dir){
-            int NumberOfPlayer = players.CountRealInstance();
-            this.players = players;
+        private Game(Client[] players, int[] status, int Starter, string dir){
+            int NumberOfPlayer = status.CountDiff(Room.NOT_IN_ROOM);
+            this.players = (Client[])players.Clone();
+            this.PlayerStatus = (int[])status.Clone();
 
-            this.initilization = Deck.__default__.Divive(players);
+            this.initilization = Deck.__default__.Divive(status);
             this.cards = new CardSet[4];
             
-            for (int i = 0; i < this.players.Count(); i++)
+            for (int i = 0; i < this.players.Count(); i++){
                 if (this.initilization[i] != null)
                     this.cards[i] = this.initilization[i].Clone();
-            
+            }
 
             if (Starter == -1){
                 /*
@@ -79,13 +85,18 @@ namespace Server{
         }
         static public Game Create(
             Client[] players, 
+            int[] status,
             int Starter = 0, 
             string dir = Game.DefaultLogDir
             ){
+
+            if (players == null || status == null)
+                throw new Exception("Parameters cannot null instances");
+            
             if (players.Count() != 4)
                 throw new Exception("Game need 4-users array to initialize (it can have null elements)");
 
-            int NumberOfPlayer = players.CountRealInstance();
+            int NumberOfPlayer = status.CountDiff(Room.NOT_IN_ROOM);
 
             if (NumberOfPlayer > 4 || NumberOfPlayer < 2)
                 throw new Exception("Game need at least 2 users or at most 4 users to play");
@@ -96,8 +107,67 @@ namespace Server{
             if (Starter != -1 && players[Starter] == null)
                 throw new Exception("Starter can be a null instance");
 
-            Game game = new Game(players, Starter, dir);
+            if (players.Count() != status.Count())
+                throw new Exception("Player and status are not synchronized");
+
+            for (int i = 0; i < players.Count(); i++)
+                if (status[i] == Room.NOT_IN_ROOM && players[i] != null)
+                    throw new Exception("Player and status are not synchronized");
+
+            Game game = new Game(players, status, Starter, dir);
             return game;
+        }
+
+        public CardSet GetMoveFromAI(string aipath = null){
+            string fullpath = Utils.GetPathOfThis() + @"\..\..\Game\";
+            fullpath = @"C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Game\";
+            if (aipath == null)
+                aipath = fullpath + "AI.exe";
+
+            aipath = @"C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\AI\bin\Debug\netcoreapp2.2\win10-x64\AI.exe";
+
+            string name = DateTime.Now.Ticks.ToString();
+            string inputfile = fullpath + name + ".inp";
+            string outputfile = fullpath + name + ".out";
+
+            // Tạo file đầu vào trước khi thực thi AI
+            using(var f = new StreamWriter(inputfile)){
+                int index = this.whoturn;
+                f.WriteLine(this.cards[this.whoturn].ToVector());
+
+                for (int add = 1; add < this.players.Count(); add++){
+                    int i = (index + add) % this.players.Count();
+                    if (this.cards[i] == null)
+                        f.WriteLine("0");
+                    else
+                        f.WriteLine(this.cards[i].Count().ToString());    
+                }
+            }
+
+            var process = new Process {
+                StartInfo = new ProcessStartInfo {
+                    FileName = @aipath,
+                    Arguments = "{0} {1}".Format(inputfile, outputfile),
+                    UseShellExecute = false, RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                }
+            };
+ 
+            process.Start();
+            process.WaitForExit();
+
+            using(var f = new StreamReader(outputfile)){
+                string content = f.ReadLine();
+                CardSet tmp = null;
+                try{
+                    tmp = CardSet.Create(arr:content.Split(" "), format:"vector");
+                }
+                catch(Exception e){
+                    this.WriteLine(e.Message);
+                    return this.cards[this.whoturn].RandomMove();
+                }
+                return tmp;
+            }
         }
 
         public List<int> Play(CardSet moveset){ 
@@ -239,7 +309,7 @@ namespace Server{
             while(this.cards[this.whoturn] == null) 
                 this.whoturn = (this.whoturn + 1) % this.cards.Count();
         }
-        public List<int> Pass(ref CardSet moveset){
+        public List<int> Pass(out CardSet moveset){
             /*
             # Người chơi hiện tại yêu cầu bỏ lượt
             # Nhưng nếu lượt chơi bắt buộc người này thực hiện,
@@ -251,6 +321,7 @@ namespace Server{
                 throw new Exception("Game finished");
 
             List<int> ret = null;
+            moveset = null;
 
             if (this.lastmove == null){
                 // Bắt buộc đánh ngẫu nhiên
@@ -277,18 +348,20 @@ namespace Server{
             }
             return ret;
         }
+        public int GetStatus(int index){
+            return this.PlayerStatus[index];
+        }
         public string ToString(int index){
             /*
-             * GameInfo:
+             * GameInfo: (dưới góc nhìn của người ở vị trí index)
              *      + Bộ bài của người chơi hiện tại.
              *      + Số lượng bài của người chơi khác.
              *      + Chỉ số người chơi đang tới lượt.
              *      + Khả năng bỏ lượt (-1 : bỏ qua, 0 : không thể bỏ lượt, 1 : có thể bỏ lượt).
              */
-            if (index < 0 || index > this.players.Count() || this.players[index] == null)
+            if (index < 0 || index > this.players.Count())
                 throw new Exception("User[{0}] is not exist in game".Format(index));
 
-            // Lấy thông tin của bàn chơi dưới cái nhìn của người chơi thứ index
             List<string> arr = new List<string>();
 
             // Thông tin của người chơi thứ index

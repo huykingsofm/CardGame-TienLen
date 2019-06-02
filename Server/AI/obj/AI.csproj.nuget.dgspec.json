@@ -1,0 +1,63 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\HOCTAP\\LT_MANG\\CardGame-TienLen\\Server\\AI\\AI.csproj": {}
+  },
+  "projects": {
+    "C:\\HOCTAP\\LT_MANG\\CardGame-TienLen\\Server\\AI\\AI.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\HOCTAP\\LT_MANG\\CardGame-TienLen\\Server\\AI\\AI.csproj",
+        "projectName": "AI",
+        "projectPath": "C:\\HOCTAP\\LT_MANG\\CardGame-TienLen\\Server\\AI\\AI.csproj",
+        "packagesPath": "C:\\Users\\HuyML\\.nuget\\packages\\",
+        "outputPath": "C:\\HOCTAP\\LT_MANG\\CardGame-TienLen\\Server\\AI\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\HuyML\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp2.2"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp2.2": {
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp2.2": {
+          "dependencies": {
+            "Microsoft.NETCore.App": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.2.4, )",
+              "autoReferenced": true
+            }
+          },
+          "imports": [
+            "net461"
+          ],
+          "assetTargetFallback": true,
+          "warn": true
+        }
+      },
+      "runtimes": {
+        "win10-x64": {
+          "#import": []
+        }
+      }
+    }
+  }
+}

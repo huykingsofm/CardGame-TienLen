@@ -37,12 +37,32 @@ namespace Server
                 return set;
             return null;
         }
-        public static CardSet Create(string[] format)
+        public static CardSet Create(string[] arr, string format = "list")
         {
-            List<Card> list = new List<Card>();
-            foreach(var e in format)
-                list.Add(Card.Create(e));
-            return CardSet.Create(list);
+            if (format == "list"){
+                List<Card> list = new List<Card>();
+                foreach(var e in arr)
+                    list.Add(Card.Create(e));
+                return CardSet.Create(list);
+            }
+            else if (format == "vector"){
+                if (arr.Count() != CardSet.MAX_CARDS)
+                    throw new Exception("Vector must have {0} elements".Format(CardSet.MAX_CARDS));
+                
+                CardSet tmp = new CardSet();
+                for (int i = 0; i < arr.Count(); i++)
+                    if (arr[i] == "0")
+                        tmp.cards[i] = false;
+                    else if (arr[i] == "1")
+                        tmp.cards[i] = true;
+                    else
+                        throw new Exception("Vector is only contain 0 or 1, but {0} found".Format(arr[i]));
+
+                return tmp;
+            }
+            else{
+                throw new Exception("No format like {0}, using 'list' or 'vector'".Format(format));
+            }
         }
         public List<Card> ToList()
         {

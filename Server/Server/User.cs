@@ -119,8 +119,10 @@ namespace Server
         }
         public void GetInfo(){
             // Lấy thông tin mới từ database, không thay đổi quyền của user
-            User tmp = UserCollection.__default__.GetInfo(this, this.username);
-            this.money = tmp.money;
+            lock(this.__lock__){
+                User tmp = UserCollection.__default__.GetInfo(this, this.username);
+                this.money = tmp.money;
+            }
         }
         public User GetInfo(string username){
             return UserCollection.__default__.GetInfo(this, username);
@@ -149,19 +151,21 @@ namespace Server
             this.Authenticate(pass);
         }
         public int ChangeMoney(int additionMoney){
-            return UserCollection.__default__.ChangeMoney(this, this.username, additionMoney);
+            lock(this.__lock__)
+                return UserCollection.__default__.ChangeMoney(this, this.username, additionMoney);
         }
         public void ChangePass(string oldPass, string newPass){
+            lock(this.__lock__){
+                // Bước 1 : Xác thực lại danh tính, cấp cho người dùng quyền sửa đổi password(tạm thời)
+                if (UserCollection.__default__.Authenticate(__administrator__, this.username, oldPass))
+                    this.permission.Add(UserPermission.EDIT_SELF_PASS);
 
-            // Bước 1 : Xác thực lại danh tính, cấp cho người dùng quyền sửa đổi password(tạm thời)
-            if (UserCollection.__default__.Authenticate(__administrator__, this.username, oldPass))
-                this.permission.Add(UserPermission.EDIT_SELF_PASS);
+                // Bước 2 : Thay đổi mật khẩu
+                UserCollection.__default__.ChangePass(this, this.username, newPass);
 
-            // Bước 2 : Thay đổi mật khẩu
-            UserCollection.__default__.ChangePass(this, this.username, newPass);
-
-            // Bước 3 : Loại bỏ quyền được sửa đổi mật khẩu
-            this.permission.Remove(UserPermission.EDIT_SELF_PASS);
+                // Bước 3 : Loại bỏ quyền được sửa đổi mật khẩu
+                this.permission.Remove(UserPermission.EDIT_SELF_PASS);
+            }
         }
         public bool HavePermission(long permission){
             return this.permission.HavePermission(permission);

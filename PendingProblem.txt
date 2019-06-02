@@ -1,4 +1,4 @@
-﻿+ Xử lý người đang chơi mà đang thoát ra.(Pending...)
-+ Cho phép dùng AI.
+﻿+ Xử lý người đang chơi mà đang thoát ra.
++ Cho phép dùng AI.(Pending...)
 + Client trở lại nếu bị mất kết nối.
 + Cân bằng tải.

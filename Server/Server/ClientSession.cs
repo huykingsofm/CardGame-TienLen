@@ -215,7 +215,7 @@ namespace Server{
                         return;
                     }
                     
-                    if (n * 2 != message.args.Count() - 1){
+                    if (n * 3 != message.args.Count() - 1){
                         this.WriteLine("Error in parameters");
                         return;
                     }
