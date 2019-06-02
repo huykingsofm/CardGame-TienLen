@@ -105,7 +105,7 @@ namespace client {
 
             lblPassword2.Visible = 
             txtPassword2.Visible = 
-            lblUserLogin.Visible = false;
+            lblUserSignUp.Visible = false;
         }
 
         private void HandleResponse(Object obj) {
@@ -114,14 +114,14 @@ namespace client {
             
             switch(message.name) {
                 case "Success":
-                    if(message.args == null || message.args.Count() != 1) {
+                    if(message.args == null) {
                         break;
                     }
                     if(message.args[0] == "Login") {
                         this.isStop = true;
                         this.Hide();
 
-                        frmLobby frm = new frmLobby(this._client);
+                        frmLobby frm = new frmLobby(this._client, this);
                         frm.ShowDialog();
                     }
                     if(message.args[0] == "Signup") {
@@ -191,7 +191,7 @@ namespace client {
                 //this._onMarquee();
                 this.Text = "Tiến Lên Miền Nam";
                 this._onSignUpClick();
-                this._sPlayer.PlayLooping();
+                //this._sPlayer.PlayLooping();
             }
         }
 
@@ -224,22 +224,14 @@ namespace client {
                 String req = RequestFormat.LOG_IN(username, password);
 
                 this._client.SendRequest(req);
-                //String res = this._client.ReceiveResponse();
-                //String []arr = res.Split(new char[] { ':', '|'});
-
-                //if(arr[0] == "Success") {
-                //    frmLobby frm = new frmLobby(this._client);
-                //    frm.ShowDialog();
-                //} else {
-                //    throw new Exception(arr[1]);
-                //}
+ 
             } catch(Exception ex) {
                 Console.WriteLine("btnLoginSubmit_Click error: " + ex.StackTrace);
-                //MessageBox.Show(
-                //    ex.Message,
-                //    "Exception",
-                //    MessageBoxButtons.OK,
-                //    MessageBoxIcon.Warning);
+                MessageBox.Show(
+                    ex.Message,
+                    "Exception",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
             }
         }
 
@@ -256,11 +248,7 @@ namespace client {
                 String req = RequestFormat.SIGN_UP(username, password);
 
                 this._client.SendRequest(req);
-                //String res = this._client.ReceiveResponse();
-                //if (res != null) {
-                //    frmLobby frm = new frmLobby(this._client);
-                //    frm.ShowDialog();
-                //}
+            
             } catch (Exception ex) {
                 Console.WriteLine("btnSignUpSubmit_Click error: " + ex.StackTrace);
                 MessageBox.Show(

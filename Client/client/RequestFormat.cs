@@ -25,13 +25,17 @@ namespace client {
         }
         public static String DISCONNECT() { return "DISC"; }
         public static String GET_ROOMS() { return "GETR"; }
-        public static String EXIT_ROOM() { return "EXIT"; }
-        public static String JOIN_ROOM(int index) { return ("JOIN:" + index); }
+        public static String EXIT_ROOM() { return "JoinLobby"; }
+        public static String EXIT_LOBBY() { return "Logout"; }
+        public static String JOIN_ROOM(int index) { return ("JoinRoom:" + index); }
         public static String NEXT_TURN() { return "NEXT"; }
-        public static String READY_GAME() { return "READ"; }
+        public static String READY_GAME() { return "Ready"; }
+        public static String UNREADY_GAME() { return "UnReady"; }
+        public static String START_GAME() { return "Start"; }
+        public static String PLAY(String cards) { return "Play:" + cards; }
         public static String PLAY(String[] cards) {
             int length = cards.Length;
-            String req = "PLAY:";
+            String req = "Play:";
             for(int i = 0; i < length; i++) {
                 req += cards[i];
                 if(i < length - 1) {
@@ -41,5 +45,6 @@ namespace client {
 
             return req;
         }
+        public static String SKIP() { return "Pass"; }
     }
 }

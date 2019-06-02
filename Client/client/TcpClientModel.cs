@@ -11,8 +11,8 @@ namespace client {
     public class TcpClientModel {
         static ASCIIEncoding encoding = new ASCIIEncoding();
         static int MAX_BUFFER_SIZE = 1024;
-        static int SERVER_PORT = 409;
-        static String SERVER_IP = "192.168.137.132";
+        static int SERVER_PORT = 1999;
+        static String SERVER_IP = "172.17.21.85";
 
         private TcpClient _tcpClient;
         private Stream _stream;
