@@ -20,3 +20,15 @@ E:\LTMCB\CK\client\CardGame-TienLen\client_folder\client\obj\Debug\client.csproj
 E:\LTMCB\CK\client\CardGame-TienLen\client_folder\client\obj\Debug\client.csproj.CoreCompileInputs.cache
 E:\LTMCB\CK\client\CardGame-TienLen\client_folder\client\obj\Debug\client.exe
 E:\LTMCB\CK\client\CardGame-TienLen\client_folder\client\obj\Debug\client.pdb
+E:\LTMCB\CardGame-TienLen\Client\client\bin\Debug\client.exe.config
+E:\LTMCB\CardGame-TienLen\Client\client\bin\Debug\client.exe
+E:\LTMCB\CardGame-TienLen\Client\client\bin\Debug\client.pdb
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.csprojAssemblyReference.cache
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.frmLobby.resources
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.frmStartGame.resources
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.Properties.Resources.resources
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.csproj.GenerateResource.cache
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.csproj.CoreCompileInputs.cache
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.exe
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.pdb
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.frmRoom.resources
