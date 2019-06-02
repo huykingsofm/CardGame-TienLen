@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -23,10 +24,19 @@ namespace client {
 
         }
 
+        static int CARD_WIDTH = 71;
+        static int CARD_MIN_WIDTH = 64;
+        static int CARD_HEIGHT = 100;
+        static int CARD_MIN_HEIGHT = 64;
+        static int Y_LOCATION = 500;
+        static int X_BET_LOCATION = 790;
+
         private TcpClientModel _client;
         private Player _player;
         private frmLobby _parent;
         private bool isStop;
+        private PictureBox[] _cards;
+        private List<PictureBox> _playedCards = new List<PictureBox>();
 
         public Control[] MapIndexToControls(int index) {
             try {
@@ -244,7 +254,7 @@ namespace client {
 
         private void UpdateRoom(String[] args) {
             try {
-                int length = 14;
+                int length = 12;
                 String[] roomInfo = new String[length];
                 Array.Copy(args, 2, roomInfo, 0, length);
 
@@ -256,7 +266,7 @@ namespace client {
                 }
 
                 int index = 0;
-                for(int i = 0; i <= length -2; i += 3) {
+                for(int i = 0; i <= length - 3; i += 3) {
                     String[] playerInfo = new String[3];
                     Array.Copy(args, i, playerInfo, 0, 3);
                     Control[] c = this.MapIndexToControls(index);
@@ -269,6 +279,7 @@ namespace client {
                 }
             } catch(Exception ex) {
                 //do something
+                Console.WriteLine("From room, an exception occurred");
             }
         }
 
@@ -287,6 +298,91 @@ namespace client {
 
                     btnStartGame.Visible = false;
                 }
+            } catch(Exception ex) {
+                //do something
+            }
+        }
+
+        private String GetSelectedCards() {
+            try {
+                int length = this._cards.Length;
+                String tmp = "";
+
+                for(int i = 0; i < length; i++) {
+                    PictureBox pb = this._cards[i];
+                    if(Convert.ToInt32(pb.Tag) == 1) {
+                        if(i == 0) {
+                            tmp += pb.Name;
+                        } else {
+                            tmp += "," + pb.Name;
+                        }                      
+                    }
+                }
+
+                if(tmp.Length > 0) {
+                    if(tmp[0] == ',') {
+                        return tmp.Substring(1);
+                    }
+                    return tmp;
+                }
+                return null;
+            } catch(Exception ex) {
+                //do something
+                return null;
+            }
+        }
+
+        private void UpdateMyCardsUI(String[] cards) {
+            try {
+                int numCards = cards.Length;
+                int begPosY = Y_LOCATION;
+                int begPosX = X_BET_LOCATION + (numCards * (CARD_WIDTH - 10)) / 2;
+
+                PictureBox[] c = new PictureBox[numCards];
+                for(int i = numCards - 1; i >= 0; i--) {
+                    int posX = i == numCards - 1 ? begPosX : c[i + 1].Location.X - CARD_WIDTH + 10;
+
+                    c[i].Width = CARD_WIDTH;
+                    c[i].Height = CARD_HEIGHT;
+                    c[i].Name = cards[i];
+                    c[i].Tag = 0;
+
+                    Image img = Image.FromFile(@"cards/" + c[i].Name + ".png");
+                    c[i].Image = img;
+
+                    c[i].Location = new Point(posX, begPosY);
+                }
+
+                this._cards = c;
+
+                this.Invoke((MethodInvoker)delegate {
+                    this.Controls.AddRange(c);
+                });
+            } catch(Exception ex) {
+                //do something
+            }
+        }
+
+        private void UpdateOpponentCards(String[] args, int n) {
+            try {
+                for(int i = 1; i <= 3; i++) {
+                    Control[] c = this.MapIndexToControls(i);
+                    c[2].Text = args[n + i];
+                }
+            } catch(Exception ex) {
+                //do something
+            }
+        }
+
+        private void UpdateCardsUI(String[] args) {
+            try {
+                int numCards = Convert.ToInt32(args[0]);
+                String[] cards = new String[numCards];
+
+                Array.Copy(args, 1, cards, 0, numCards);
+                this._player.UpdateCards(cards);
+                this.UpdateMyCardsUI(cards);
+
             } catch(Exception ex) {
                 //do something
             }
@@ -328,7 +424,8 @@ namespace client {
 
         private void frmRoom_Load(object sender, EventArgs e) {
             try {
-
+                Thread th = new Thread(this.StartHandleReponses);
+                th.Start();
             } catch(Exception ex) {
                 //do something
             }

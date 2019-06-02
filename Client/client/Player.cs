@@ -85,6 +85,7 @@ namespace client {
                 String req = RequestFormat.READY_GAME();
 
                 this._client.SendRequest(req);
+                this.isReady = true;
             } catch(Exception ex) {
                 //do something
             }
@@ -95,6 +96,7 @@ namespace client {
                 String req = RequestFormat.UNREADY_GAME();
 
                 this._client.SendRequest(req);
+                this.isReady = false;
             } catch(Exception ex) {
                 //do something
             }

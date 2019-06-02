@@ -27,7 +27,7 @@ namespace client {
         public static String GET_ROOMS() { return "GETR"; }
         public static String EXIT_ROOM() { return "JoinLobby"; }
         public static String EXIT_LOBBY() { return "Logout"; }
-        public static String JOIN_ROOM(int index) { return ("JOIN:" + index); }
+        public static String JOIN_ROOM(int index) { return ("JoinRoom:" + index); }
         public static String NEXT_TURN() { return "NEXT"; }
         public static String READY_GAME() { return "Ready"; }
         public static String UNREADY_GAME() { return "UnReady"; }
