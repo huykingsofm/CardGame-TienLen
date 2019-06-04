@@ -309,11 +309,76 @@ namespace Server{
                         }
 
                     this.room.StopGame(winner);
+                    this.room.Refresh();
                     this.UpdateRoomForClients();
                     this.Send(this.lobbysession, "UpdateRoom");
                     this.gamesession.Destroy();
                     this.gamesession = null;
-                    
+                    break;
+                }
+                case "SetAI":{
+                    int iplayer = this.clientsessions.FindById(message.id);
+                    if (iplayer == -1){
+                        this.WriteLine("This message must come from Client");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("This message must have a parameters");
+                        return;
+                    }
+
+                    if (iplayer != this.room.host){
+                        this.Send(this.clientsessions[iplayer], "Failure:Only host can set AI");
+                        return;
+                    }
+
+                    int index = 0;
+                    if (Int32.TryParse(message.args[0], out index) == false || index < 0 || index >= 4){
+                        this.WriteLine("Parameter is incorrect");
+                        return;
+                    }
+                    try{
+                        this.room.SetAI((index + iplayer) % 4);
+                    }
+                    catch(Exception e){
+                        this.Send(this.clientsessions[iplayer], "Failure:SetAI,{0}".Format(e.Message));
+                        return;
+                    }
+                    this.Send(this.clientsessions[iplayer], "Success:SetAI,{0}".Format(index));
+                    this.UpdateRoomForClients();
+                    break;
+                }
+                case "RemoveAI":{
+                    int iplayer = this.clientsessions.FindById(message.id);
+                    if (iplayer == -1){
+                        this.WriteLine("This message must come from Client");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("This message must have a parameters");
+                        return;
+                    }
+                    if (iplayer != this.room.host){
+                        this.Send(this.clientsessions[iplayer], "Failure:Only host can set AI");
+                        return;
+                    }
+
+                    int index = 0;
+                    if (Int32.TryParse(message.args[0], out index) == false || index < 0 || index >= 4){
+                        this.WriteLine("Parameter is incorrect");
+                        return;
+                    }
+                    try{
+                        this.room.RemoveAI((index + iplayer) % 4);
+                    }
+                    catch(Exception e){
+                        this.Send(this.clientsessions[iplayer], "Failure:RemoveAI,{0}".Format(e.Message));
+                        return;
+                    }
+                    this.Send(this.clientsessions[iplayer], "Success:RemoveAI,{0}".Format(index));
+                    this.UpdateRoomForClients();
                     break;
                 }
                 default:{

@@ -63,7 +63,7 @@ namespace Server{
             this.lastwinner = -1;
             this.BetMoney = 1;
             this.game = null;
-            this.PlayerStatus = new int[]{0, 0, Room.AI, 0}; // NOT_IN_ROOM
+            this.PlayerStatus = new int[]{0, 0, 0, 0}; // NOT_IN_ROOM
             this.clients = new Client[]{null, null, null, null};
             this.lobby = lobby;
             this.RoomStatus = Room.ROOM_WAITING;
@@ -129,7 +129,6 @@ namespace Server{
                             break;
                         }
                     }
-                
             }
             
             return index;
@@ -139,12 +138,12 @@ namespace Server{
                 throw new Exception("Player cannot a null instance");
 
             if (this.RoomStatus == Room.ROOM_PLAYING)
-                throw new Exception("Everybody are playing, please wait for ending");
+                throw new Exception("Everybody are playing. Please wait for ending");
 
             int index = this.clients.Where(player);
             
             if (index == this.host)
-                throw new Exception("You are the host, it is unnecessary to ready");
+                throw new Exception("You are the host. It is unnecessary to ready");
 
             if (index < 0 || index >= this.clients.Count() || this.clients[index] == null)
                 throw new Exception("Player[{0}] do not exist in room");
@@ -159,7 +158,7 @@ namespace Server{
                 throw new Exception("Player cannot a null instance");
 
             if (this.RoomStatus == Room.ROOM_PLAYING)
-                throw new Exception("Everybody are playing, please wait for ending");
+                throw new Exception("Everybody are playing. Please wait for ending");
 
             int index = this.clients.Where(player);
             
@@ -170,6 +169,31 @@ namespace Server{
                 throw new Exception("Player cannot unready now");
 
             this.PlayerStatus[index] = Room.NOT_READY;
+        }
+        public void SetAI(int index){
+            if (this.RoomStatus == Room.ROOM_PLAYING)
+                throw new Exception("Everybody are playing. Please wait for ending");
+
+            if (this.PlayerStatus[index] == Room.AI)
+                throw new Exception("This position has already been a AI");
+            
+            if (this.PlayerStatus[index] != Room.NOT_IN_ROOM)
+                throw new Exception("This position was hold by another player");
+
+            this.PlayerStatus[index] = Room.AI;
+        }
+
+        public void RemoveAI(int index){
+            if (this.RoomStatus == Room.ROOM_PLAYING)
+                throw new Exception("Everybody are playing. Please wait for ending");
+
+            if (this.PlayerStatus[index] == Room.NOT_IN_ROOM)
+                throw new Exception("This status is a empty slot");
+
+            if (this.PlayerStatus[index] != Room.AI)
+                throw new Exception("This position is not a AI slot");
+            
+            this.PlayerStatus[index] = Room.NOT_IN_ROOM;
         }
         public void SetBetMoney(Client client, int betmoney){
             if (this.RoomStatus == Room.ROOM_PLAYING)
@@ -222,9 +246,13 @@ namespace Server{
         }
 
         public void Refresh(){
-            for (int i = 0; i < this.clients.Count(); i++)
+            for (int i = 0; i < this.clients.Count(); i++){
                 if (this.clients[i] == null)
                     this.PlayerStatus[i] = Room.NOT_IN_ROOM;
+            
+                if (this.lastwinner == i && this.PlayerStatus[i] == Room.NOT_IN_ROOM)
+                    this.lastwinner = -1;
+            }
         }
 
         public void StopGame(int winner){

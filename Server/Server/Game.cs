@@ -46,8 +46,8 @@ namespace Server{
 
         private Game(Client[] players, int[] status, int Starter, string dir){
             int NumberOfPlayer = status.CountDiff(Room.NOT_IN_ROOM);
-            this.players = (Client[])players.Clone();
-            this.PlayerStatus = (int[])status.Clone();
+            this.players = players;
+            this.PlayerStatus = status;
 
             this.initilization = Deck.__default__.Divive(status);
             this.cards = new CardSet[4];
@@ -101,7 +101,7 @@ namespace Server{
             if (NumberOfPlayer > 4 || NumberOfPlayer < 2)
                 throw new Exception("Game need at least 2 users or at most 4 users to play");
             
-            if (Starter != -1 && (Starter < 0 || Starter >= NumberOfPlayer))
+            if (Starter != -1 && (Starter < 0 || Starter >= 4))
                 throw new Exception("Starter must be a index between 0 and 3");
 
             if (Starter != -1 && players[Starter] == null)

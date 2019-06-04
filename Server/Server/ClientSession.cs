@@ -528,6 +528,44 @@ namespace Server{
                     this.client.Send(message.MessageOnly());
                     break;
                 }
+                case "SetAI":{
+                    if (this.id != message.id){
+                        this.WriteLine("This message must come from Client");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("This message must have a parameters");
+                        return;
+                    }
+
+                    if (this.roomsession == null){
+                        this.client.Send("Client must be in room to send this message");
+                        return;
+                    }
+
+                    this.Send(this.roomsession, message.MessageOnly());
+                    break;
+                }
+                case "RemoveAI":{
+                    if (this.id != message.id){
+                        this.WriteLine("This message must come from Client");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("This message must have a parameters");
+                        return;
+                    }
+
+                    if (this.roomsession == null){
+                        this.client.Send("Client must be in room to send this message");
+                        return;
+                    }
+
+                    this.Send(this.roomsession, message.MessageOnly());
+                    break;
+                }
                 default:{
                     this.WriteLine("Cannot identify message!");
                     break;

@@ -62,24 +62,44 @@ namespace Server{
         }
         private void StopTimer(){
             this.TimerStop = true;
-            while (this.timerthread != null && this.timerthread.IsAlive == true)
+            while (this.timerthread != null && this.timerthread.IsAlive == true){
                 Thread.Sleep(300);
+                this.TimerStop = true;
+            }
         }
         private void WaitForAI(){
             this.AIStop = false;
+            int index = -1;
             while (this.AIStop == false){
-                while (this.game.GetStatus(this.game.whoturn) != Room.AI)
+                while (this.game.GetStatus(this.game.whoturn) != Room.AI 
+                && this.game.GetStatus(this.game.whoturn) != Room.AFK
+                && this.AIStop == false){
                     Thread.Sleep(300);
+                    if (this.game.whoturn != index)
+                        index = -1;
+                }
 
-                int index = this.game.whoturn;
-                try{
-                    CardSet cardset = this.game.GetMoveFromAI();
-                    if (this.Play(index, cardset) == false)
-                        throw new Exception();
+                if (this.AIStop == true ||  this.game.EndGameSignal)
+                    break;
+                
+                if (this.game.whoturn == index)
+                    continue;
+
+                index = this.game.whoturn;               
+
+                if (this.game.GetStatus(index) == Room.AI){
+                    try{
+                        CardSet cardset = this.game.GetMoveFromAI();
+                        this.Send(this, "AIPlay:{0},{1}".Format(index, cardset.ToString(sum:false)));
+                    }
+                    catch{
+                        this.Send(this, "AIPlay:{0}".Format(index));
+                    }
                 }
-                catch{
-                    this.Pass(index);
+                else if (this.game.GetStatus(index) == Room.AFK){
+                    this.Send(this, "AutoPass:{0}".Format(index));
                 }
+                Thread.Sleep(300);
             }
         }
         private void StartWaitForAI(){
@@ -88,8 +108,10 @@ namespace Server{
         }
         private void StopWaitForAI(){
             this.AIStop = true;
-            while(this.AIThread.IsAlive == true)
+            while(this.AIThread.IsAlive == true){
                 Thread.Sleep(300);
+                this.AIStop = true;
+            }
         }
         public override void Solve(Object obj){
             Message message = (Message) obj;
@@ -138,6 +160,41 @@ namespace Server{
                     this.Play(index, cardset);
                     break;
                 }
+                case "AIPlay":{
+                    if (message.id != this.id) {
+                        this.WriteLine("This message must be come from game");
+                        return;
+                    }
+
+                    int index = 0;
+                    if (Int32.TryParse(message.args[0], out index) == false){
+                        this.WriteLine("Parameter is incorrect");
+                        return;
+                    }
+ 
+                    if (index != this.game.whoturn){
+                        this.WriteLine("This is turn of player[{0}]", this.game.whoturn);
+                        return;
+                    }
+                    CardSet cardset = null;
+                    try{
+                        cardset = CardSet.Create(message.args.Take(1, -1));
+                    }
+                    catch(Exception e){
+                        this.WriteLine(e.Message);
+                        this.Pass(index);
+                        return;
+                    }
+
+                    try{
+                        if(this.Play(index, cardset) == false)
+                            throw new Exception();
+                    }
+                    catch{
+                        this.Pass(index);
+                    }
+                    break;
+                }
                 case "Pass":{
                     /*
                     # Nhận thông tin bỏ lượt của người chơi hiện tại.
@@ -159,6 +216,26 @@ namespace Server{
                         return;
                     }
 
+                    this.Pass(index);
+                    break;
+                }
+                case "AutoPass":{
+                    if (message.id != this.id) {
+                        this.WriteLine("This message must be come from game");
+                        return;
+                    }
+
+                    int index = 0;
+                    if (Int32.TryParse(message.args[0], out index) == false){
+                        this.WriteLine("Parameter is incorrect");
+                        return;
+                    }
+ 
+                    if (index != this.game.whoturn){
+                        this.WriteLine("This is turn of player[{0}]", this.game.whoturn);
+                        return;
+                    }
+                    
                     this.Pass(index);
                     break;
                 }
@@ -340,8 +417,8 @@ namespace Server{
             this.Send(this.room, "UpdateGame");
                     
             if (ret != null && ret.Last() != -1){
-                this.Send(this.room, "GameFinished:{0}".Format(ret.Last()));
                 this.StopWaitForAI();
+                this.Send(this.room, "GameFinished:{0}".Format(ret.Last()));
             }
             else
                 this.StartTimer();
@@ -353,7 +430,7 @@ namespace Server{
             this.StartWaitForAI();
         }
         public override void Stop(string mode = "normal"){
-            this.StopWaitForAI();
+            this.StopTimer();
             base.Stop(mode);
         }
         public void UpdateMoneyForClients(int[] coef_money){
