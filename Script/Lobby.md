@@ -8,7 +8,7 @@
     * "LTMCB2017" &nbsp;- 20 000
     * "UIT2017"&ensp;&ensp;&ensp;&ensp;- 50 000.
 ## NHẬN
-* *LobbyInfo:<n - số phòng>,<số người phòng 0>,<tiền cược phòng 0>,...,<số người phòng n-1>,<tiền cược phòng n - 1>*
+* *LobbyInfo:<n - số phòng>,<số người phòng 0>,<tiền cược phòng 0>,<trạng thái phòng 0>,...,<số người phòng n-1>,<tiền cược phòng n - 1>,<trạng thái phòng n - 1>*
    > Hiển thị thông tin các phòng trong lobby.
 * *Success:Logout*
    > Chuyển user ra khỏi lobby trở về outdoor.
@@ -19,4 +19,3 @@
 * *Failure:Logout,\<reason>*
 * *Failure:JoinRoom,\<reason>*
 * *Failure:Payin,\<reason>*
-	

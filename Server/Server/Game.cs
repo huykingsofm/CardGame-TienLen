@@ -40,14 +40,17 @@ namespace Server{
         private List<CardSet> onboardsets = null;           // lưu lại những bộ bài đang ở trên bàn
         public bool EndGameSignal {get; private set;}       // Tín hiệu kết thúc game.
         public string LogDir;                   // các file nhật ký game được lưu ở đây
-        public int[] PlayerStatus{get; private set;}             /* trạng thái các player trong game
-                                                 * Sử dụng lại các trạng thái ở lớp Room
-                                                 */
+        public int[] PlayerStatus{get; private set;}    /* trạng thái các player trong game
+                                                         * Sử dụng lại các trạng thái ở lớp Room
+                                                         */
+        
+        public int MoneyOfAfkPlayer{get; private set;}
 
         private Game(Client[] players, int[] status, int Starter, string dir){
             int NumberOfPlayer = status.CountDiff(Room.NOT_IN_ROOM);
             this.players = players;
             this.PlayerStatus = status;
+            this.MoneyOfAfkPlayer = 0;
 
             this.initilization = Deck.__default__.Divive(status);
             this.cards = new CardSet[4];
@@ -119,13 +122,16 @@ namespace Server{
         }
 
         public CardSet GetMoveFromAI(string aipath = null){
-            string fullpath = Utils.GetPathOfThis() + @"\..\..\Game\";
+            string fullpath;    // = Utils.GetPathOfThis() + @"\..\..\Game\";
             fullpath = @"C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Game\";
+            /* 
             if (aipath == null)
                 aipath = fullpath + "AI.exe";
 
             aipath = @"C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\AI\bin\Debug\netcoreapp2.2\win10-x64\AI.exe";
-
+            */
+            
+            aipath = @"C:\Users\HuyML\Downloads\AISupporter\AISupporter\bin\Debug\AISupporter.exe"; 
             string name = DateTime.Now.Ticks.ToString();
             string inputfile = fullpath + name + ".inp";
             string outputfile = fullpath + name + ".out";
@@ -134,7 +140,10 @@ namespace Server{
             using(var f = new StreamWriter(inputfile)){
                 int index = this.whoturn;
                 f.WriteLine(this.cards[this.whoturn].ToVector());
-                f.WriteLine(this.lastmove.GetMoveSet().ToVector());
+                if (lastmove == null)
+                    f.WriteLine(CardSet.Create(null as List<Card>).ToVector());
+                else
+                    f.WriteLine(this.lastmove.GetMoveSet().ToVector());
 
                 for (int add = 1; add < this.players.Count(); add++){
                     int i = (index + add) % this.players.Count();
@@ -170,7 +179,14 @@ namespace Server{
                 return tmp;
             }
         }
+        public int AFK(Client client){
+            int index = this.players.Where(client);
+            if (index == -1)
+                throw new Exception("Player is not exist in game");
 
+            this.MoneyOfAfkPlayer += this.cards[index].Count() * 2;
+            return this.cards[index].Count() * 2;
+        }
         public List<int> Play(CardSet moveset){ 
             /*
             # Mục đích : thực hiện đánh nước bài với player đang trong lượt
@@ -247,7 +263,7 @@ namespace Server{
                         ret[i] -= this.cards[i].Count(number:2, suit:3);
                         sum += ret[i];
                     }
-                ret[this.whoturn] = (int) (- sum * 0.9);
+                ret[this.whoturn] = (int) (- sum * 0.9) + (int)(this.MoneyOfAfkPlayer * 0.7);
             }
 
             /*
@@ -474,7 +490,6 @@ namespace Server{
                 }
             }
         }
-
         public CardSet[] GetInitCardSets(){
             CardSet[] tmp = new CardSet[4];
             for (int i = 0; i < 4; i++)

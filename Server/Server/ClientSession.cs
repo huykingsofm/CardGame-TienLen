@@ -457,8 +457,9 @@ namespace Server{
                     break;
                 }
                 case "PlayingCard":{
-                    if (this.roomsession == null || message.id != this.roomsession.id){
-                        this.WriteLine("Message must be come from roomsession");
+                    if ((this.roomsession == null || message.id != this.roomsession.id) &&
+                        (this.gamesession == null || message.id != this.gamesession.id) ){
+                        this.WriteLine("Message must be come from roomsession or room");
                         return;
                     }
 
@@ -621,7 +622,7 @@ namespace Server{
                     1);                                 // init money
             }
             catch(Exception e){
-                string M = "Failure:Signup" + e.Message;
+                string M = "Failure:Signup," + e.Message;
                 this.client.Send(M);
                 return null;
             }

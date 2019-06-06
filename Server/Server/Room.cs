@@ -110,12 +110,16 @@ namespace Server{
                 throw new Exception("Player do not exist in room");
 
             lock(this.clients){
-                this.clients[index] = null;
-                if (this.PlayerStatus[index] == Room.PLAYING)
+                if (this.PlayerStatus[index] == Room.PLAYING){
+                    int changeMoney = this.game.AFK(player) * this.BetMoney;
+                    player.user.ChangeMoney(- changeMoney);
                     this.PlayerStatus[index] = Room.AFK;
+                }
                 else
                     this.PlayerStatus[index] = Room.NOT_IN_ROOM;
 
+                this.clients[index] = null;
+                
                 this.host = this.host == index ? -1 : this.host;
                 this.lastwinner = this.lastwinner == index ? -1 : this.lastwinner;
 

@@ -4,9 +4,11 @@
 ## Gửi
 * Thoát khỏi room : *JoinLobby*
 * Đặt tiền cược &nbsp;&nbsp;&nbsp;&nbsp; : *BetMoney:\<money>*
-* Sẵn sàng &ensp;&ensp;&ensp;&ensp;&ensp;&ensp; : "Ready"
-* Hủy sẵn sàng &ensp;&ensp; : "UnReady"
-* Bắt đầu chơi &ensp; &ensp;&ensp;: "Start"
+* Sẵn sàng &ensp;&ensp;&ensp;&ensp;&ensp;&ensp; : *Ready*
+* Hủy sẵn sàng &ensp;&ensp; : *UnReady*
+* Bắt đầu chơi &ensp; &ensp;&ensp;: *Start*
+* Tạo AI &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;: *SetAI:\<index of slot>*
+* Xóa AI &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;: *RemoveAI:\<index of slot>*
 ## Nhận
 * *RoomInfo:\<tiền cược>,\<host-index>,\<name-0>,\<money-0>,\<status-0>,....,\<name-3>,\<money-3>,\<status-3>* 
 	>* Hiển thị lại các thông tin trong phòng bao gồm tiền cược, chủ phòng và thông tin các người chơi.  
@@ -19,6 +21,8 @@
 	
 * *Success:Start*
 	> Chuẩn bị nhận thêm một số message khác từ game. 
+* *Success:SetAI*
+* *Success:RemoveAI*
 * *Success:Ready*
 * *Success:UnReady*
 * *Success:BetMoney*
@@ -26,5 +30,6 @@
 * *Failure:UnReady,\<reason>*
 * *Failure:Start,\<reason>*
 * *Failure:BetMoney,\<reason>*
-
+* *Failure:SetAI,\<reason>*
+* *Failure:RemoveAI,\<reason>*
 	

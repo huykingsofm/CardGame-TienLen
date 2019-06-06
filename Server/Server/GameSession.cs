@@ -306,21 +306,12 @@ namespace Server{
 
                     break;
                 }
-                case "Disconnect":{
-
-                    /*
-                    # Nhận thông báo đã thoát của người chơi
-                    # Thiết lập giá trị ảo cho người chơi
-                    # Khi đến lượt của người chơi đã thoát --> Pass
-                    */
-                    break;
-                }
                 default:{
                     Console.WriteLine("Cannot solve this message from Game : {0}".Format(message));
                     break;
                 }
             }
-        }
+        }       
         private bool Play(int index, CardSet cardset){
             if (index != this.game.whoturn)
                 throw new Exception (
@@ -403,18 +394,15 @@ namespace Server{
                     this.WriteLine("Success:{0}".Format(request));
             
 
-            if (moveset != null){
-                string playingmessage = "PlayingCard:{0},{1}".
-                    Format(index, moveset);
-                this.Send(this.room, playingmessage);
-            }
+            if (moveset != null)
+                this.UpdatePlayingCardForClients(index, moveset.ToString());
 
             if (ret != null){
                 int[] coef_money = ret.ToArray().Take(0, - 2);
                 this.UpdateMoneyForClients(coef_money); 
             }
 
-            this.Send(this.room, "UpdateGame");
+            this.UpdateForClients();
                     
             if (ret != null && ret.Last() != -1){
                 this.StopWaitForAI();
@@ -423,38 +411,36 @@ namespace Server{
             else
                 this.StartTimer();
         }
-        public override void Start(){
-            this.UpdateForClients();
-            base.Start();
-            this.StartTimer();
-            this.StartWaitForAI();
-        }
-        public override void Stop(string mode = "normal"){
-            this.StopTimer();
-            base.Stop(mode);
+        public void UpdatePlayingCardForClients(int index, string PlayingCard){
+            for(int i = 0; i < this.clientsessions.Count(); i++)
+                if (this.clientsessions[i] != null){
+                    int onturn = (4 + index - i) % 4;
+                    this.Send(this.clientsessions[i], "PlayingCard:{0},{1}"
+                        .Format(onturn, PlayingCard) );
+                }
         }
         public void UpdateMoneyForClients(int[] coef_money){
             if (coef_money.IsAll(0) == false){
                 int sum = 0;
                 int receiver = -1;
 
-                for (int i = 0; i < coef_money.Count(); i++)
-                    if (this.clientsessions[i] != null){
-                        int loss = 0;
-                        coef_money[i] = coef_money[i] * this.BetMoney;
+                for (int i = 0; i < coef_money.Count(); i++){
+                    int loss = 0;
+                    coef_money[i] = coef_money[i] * this.BetMoney;
                    
-                        if (coef_money[i] < 0)
-                            loss = this.clientsessions[i].client.user.ChangeMoney(coef_money[i]);
-                        else if(coef_money[i] > 0)
-                            receiver = i;
+                    if (coef_money[i] < 0 && this.clientsessions[i] != null)
+                        loss = this.clientsessions[i].client.user.ChangeMoney(coef_money[i]);
+                    else if(coef_money[i] > 0)
+                        receiver = i;
 
-                        if (receiver == i)
-                            sum += loss;
-                        sum -= loss;
-                    }
+                    if (receiver == i)
+                        sum += loss;
+                    sum -= loss;
+                }
 
                 if (receiver != -1)
-                    coef_money[receiver] = (int) (0.9 * sum);
+                    coef_money[receiver] = (int) (0.9 * sum) + 
+                                           (int) (this.game.MoneyOfAfkPlayer * this.BetMoney * 0.7);
     
                 if(receiver != -1 && this.clientsessions[receiver] != null)   
                     this.clientsessions[receiver].client.user.ChangeMoney(coef_money[receiver]);
@@ -479,9 +465,22 @@ namespace Server{
         public void UpdateForClients(){
             for(int i = 0; i < this.clientsessions.Count(); i++){
                 if (this.clientsessions[i] != null){
-                    this.Send(clientsessions[i], "GameInfo:{0}".Format(this.GameInfo(i) ) );
+                    this.Send(clientsessions[i], "GameInfo:{0}"
+                        .Format(this.GameInfo(i) ) );
+                    this.Send(this.clientsessions[i], "OnTableInfo:{0}"
+                        .Format(this.OnTableInfo()));
                 }
             }
+        }
+        public override void Start(){
+            this.UpdateForClients();
+            base.Start();
+            this.StartTimer();
+            this.StartWaitForAI();
+        }
+        public override void Stop(string mode = "normal"){
+            this.StopTimer();
+            base.Stop(mode);
         }
         public void WriteLog(){
             this.game.WriteLog();
