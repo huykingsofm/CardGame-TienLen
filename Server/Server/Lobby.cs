@@ -28,10 +28,12 @@ namespace Server{
         public override string Name => "Lobby";
         public const int MAX_ROOM = 10;
         public const int MAX_CLIENT = 100;
-        private Client[] clients;   
+        private string[] playernames;   
+        private Client[] clients;
         public Room[] rooms;
         private Outdoor outdoor;
         private int LastSlot;
+        public long id {get; private set;}
         protected Lobby(Outdoor outdoor){
             /*
              * Mục đích : Tạo lobby với outdoor chỉ định.
@@ -41,13 +43,17 @@ namespace Server{
             if (outdoor == null)
                 throw new Exception("Outdoor can be a null instance");
 
+            this.playernames = new string[Lobby.MAX_CLIENT];
             this.clients = new Client[Lobby.MAX_CLIENT];
             this.rooms = new Room[Lobby.MAX_ROOM];
             this.outdoor = outdoor;
             this.LastSlot = 0;
+            this.id = 0;
             
             for (int i = 0; i < this.rooms.Count(); i++)
-                this.rooms[i] = Room.Create(this);
+                this.rooms[i] = Room.Create(this, i);
+
+            //LobbyCollection.__default__.Change(this.id, this.ToString());
         }
         public static Lobby Create(Outdoor outdoor){
             /*
@@ -64,7 +70,7 @@ namespace Server{
             }
             return lobby;
         }        
-        public int Add(Client client, int limit = Lobby.MAX_CLIENT){
+        public int Add(string playername, int limit = Lobby.MAX_CLIENT){
             /*
              * Mục đích : Thêm một client vào lobby
              * Hành động :
@@ -77,31 +83,31 @@ namespace Server{
              *      + Nếu tìm thấy vị trí phù hợp, thêm client vào.
              *      + Nếu không tìm thấy vị trí, tạo exception.
              */
-            if (client == null)
+            if (playername == null)
                 throw new Exception("client cant be a null instance");
 
-            if (client.IsLogin() == false)
+            if (WorkingCollection.__default__.IsPlaying(playername) == false)
                 throw new Exception("client must log in before enter lobby");
 
-            if (this.clients.Contains(client))
+            if (this.playernames.Contains(playername))
                 throw new Exception("client has been existed in server");
 
             int time = 0;
-            lock(this.clients){
-                while (time < limit && this.clients[this.LastSlot] != null){
+            lock(this.playernames){
+                while (time < limit && this.playernames[this.LastSlot] != null){
                     this.LastSlot = (this.LastSlot + 1) % Lobby.MAX_CLIENT;
                     time++;
                 }
 
-                if (this.clients[this.LastSlot] != null)
+                if (this.playernames[this.LastSlot] != null)
                     throw new Exception("Lobby is no longer any empty slot");
 
-                this.clients[this.LastSlot] = client;
+                this.playernames[this.LastSlot] = playername;
                 return this.LastSlot;
             }
 
         }
-        public int Remove(Client client){
+        public int Remove(string client){
             /*
              * Mục đích : Loại bỏ một client ra khỏi lobby.
              * Hành động : 
@@ -113,12 +119,12 @@ namespace Server{
             if (client == null)
                 throw new Exception("client can not be a null instance");
 
-            int index = this.clients.Where(client);
+            int index = this.playernames.Where(client);
             if (index == -1)
                 throw new Exception("client is not exist in lobby");
 
-            lock(this.clients){
-                this.clients[index] = null;
+            lock(this.playernames){
+                this.playernames[index] = null;
             }  
 
             return index;      
@@ -134,10 +140,10 @@ namespace Server{
                 foreach(Room room in this.rooms)
                     room.Destroy();
 
-            foreach(Client client in this.clients.ToArray())
-                if (client != null){
-                    this.Remove(client);
-                    this.outdoor.Add(client);
+            foreach(string playername in this.playernames.ToArray())
+                if (playername != null){
+                    this.Remove(playername);
+                    this.outdoor.Add(playername);
                 }
         }
         public override string ToString(){
@@ -145,13 +151,7 @@ namespace Server{
              * Mục đích : Trả về thông tin của các phòng trong lobby.
              * Thông tin có dạng : num_rooms,roominfo_1,roominfo_2,..,roominfo_n
              */
-            string[] arr = new string[Lobby.MAX_ROOM + 1];
-
-            arr[0] = Lobby.MAX_ROOM.ToString();
-            for (int i = 0; i < Lobby.MAX_ROOM; i++)
-                arr[i + 1] = this.rooms[i].GeneralInfo();
-
-            return String.Join(",", arr);
+            return RoomCollection.__default__.GetLobbyInfo(this.id);
         } 
     }
 }

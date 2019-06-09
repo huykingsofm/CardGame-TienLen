@@ -11,11 +11,56 @@ namespace Server{
         ClientSession[] clientsessions;
         GameSession gamesession;
         public override string Name => "RoomSession";
+        private Thread RoomUpdateThread;
+        private bool RoomUpdateStop;
+        private Thread WaitGameThread;
+        private bool WaitGameStop;
+        private string oldstatus;
         public RoomSession(Room room, LobbySession lobbysession) : base(){
             this.room = room;
             this.lobbysession = lobbysession;
             this.clientsessions = new ClientSession[4];
             this.gamesession = null;
+        }
+        private void WaitForUpdate(){
+            string status;
+            this.RoomUpdateStop = false;
+            while(this.RoomUpdateStop == false){
+                Thread.Sleep(300);
+                status = this.ToString(0);
+                if (status == this.oldstatus)
+                    continue;
+
+                this.Send(this, "UpdateSelf");
+            }
+        }
+        private void StartWaitForUpdate(){
+            this.RoomUpdateThread = new Thread(this.WaitForUpdate);
+            this.RoomUpdateThread.Start();
+        }
+        private void StopWaitForUpdate(){
+            this.RoomUpdateStop = true;
+            while(this.RoomUpdateThread.IsAlive == true)
+                Thread.Sleep(300);
+        }
+        private void WaitForStartGame(){
+            this.WaitGameStop = false;
+            while(this.WaitGameStop == false){
+                Thread.Sleep(300);
+                if (this.gamesession != null || this.room.GameExist() == false)
+                    continue;
+
+                this.Send(this, "CreateGame");
+            }
+        }
+        private void StartWaitForStartGame(){
+            this.WaitGameThread = new Thread(this.WaitForStartGame);
+            this.WaitGameThread.Start();
+        }
+        private void StopWaitForStartGame(){
+            this.WaitGameStop = true;
+            while(this.WaitGameThread.IsAlive == true)
+                Thread.Sleep(300);
         }
         public override void Solve(object obj){
             /* 
@@ -26,7 +71,8 @@ namespace Server{
 
             if (this.clientsessions.FindById(message.id) == -1 
             && (message.id != this.lobbysession.id)
-            && (this.gamesession == null || message.id != this.gamesession.id) ){
+            && (this.gamesession == null || message.id != this.gamesession.id) 
+            && (message.id != this.id)){
                 this.WriteLine("Can not identify message");
                 return;
             }
@@ -50,7 +96,7 @@ namespace Server{
                     }
 
                     try{
-                        this.room.Ready(clientsession.client);
+                        this.room.Ready(clientsession.client.user.username);
                     }
                     catch(Exception e){
                         this.Send(clientsession, "Failure:Ready,{0}".Format(e.Message));
@@ -78,7 +124,7 @@ namespace Server{
                     }
 
                     try{
-                        this.room.UnReady(clientsession.client);
+                        this.room.UnReady(clientsession.client.user.username);
                     }
                     catch(Exception e){
                         this.Send(clientsession, "Failure:Ready,{0}".Format(e.Message));
@@ -96,28 +142,30 @@ namespace Server{
                     */
                     ClientSession clientsession = (ClientSession) this.clientsessions.GetById(message.id);
                     int index = this.clientsessions.FindById(message.id);
-                    if (index != this.room.host){
+                    if (index != this.room.GetHost()){
                         this.Send(clientsession, "Failure:StartGame,You must be the host to start game");
                         return;
                     }
-                    Game game = null;
                     try{
-                        game = this.room.StartGame();
+                        this.room.StartGame();
                     }
                     catch (Exception e){
-                        this.WriteLine(e);
                         this.Send(clientsession, "Failure:Start,{0}".Format(e.Message));
                         return;
                     }
 
-                    this.gamesession = GameSession.Create(
-                        this, 
-                        this.clientsessions, 
-                        game, 
-                        this.room.BetMoney
-                    );
                     this.Send(clientsession, "Success:Start");
-
+                    RoomCollection.__default__.AddGame(this.room.id);
+                    break;
+                }
+                case "CreateGame":{
+                    Game game = this.room.CreateGame();
+                    this.gamesession = GameSession.Create(
+                        room    : this,
+                        clients : this.clientsessions,
+                        game    : game,
+                        BetMoney: this.room.GetBetMoney()
+                    );
                     foreach(var client in this.clientsessions)
                         if (client != null)
                             client.Join(gamesession);
@@ -143,15 +191,21 @@ namespace Server{
                         return;
                     }
 
+                    int iplayer = this.clientsessions.FindById(message.id);
+                    if (iplayer != this.room.GetHost()){
+                        this.Send(this.clientsessions[iplayer], "Failure:Only host can set bet money");
+                        return;
+                    }
+
                     try{
-                        this.room.SetBetMoney(clientsession.client, betmoney);
+                        this.room.SetBetMoney(betmoney);
                     }
                     catch(Exception e){
                         this.Send(clientsession, "Failure:BetMoney,{0}".Format(e.Message));
                         return;
                     }
                     this.Send(clientsession, "Success:BetMoney");
-                    this.Send(this.lobbysession, "UpdateRoom");
+                    this.Send(this.lobbysession, "UpdateLobby");
                     this.UpdateRoomForClients();
                     break;
                 }
@@ -176,7 +230,7 @@ namespace Server{
                     this.Remove(client);
                     client.Join(this.lobbysession);
                     this.lobbysession.Add(client);
-                    this.Send(this.lobbysession, "UpdateRoom");
+                    this.Send(this.lobbysession, "UpdateLobby");
                     break;
                 }
                 case "Disconnect":{
@@ -199,7 +253,7 @@ namespace Server{
                     this.Remove(client);
                     this.lobbysession.Add(client);
                     client.Join(this.lobbysession);
-                    this.Send(this.lobbysession, "UpdateRoom");
+                    this.Send(this.lobbysession, "UpdateLobby");
                     break;
                 }
                 case "JoinLobby":{
@@ -220,8 +274,8 @@ namespace Server{
                         return;
                     }
 
-                    if (this.room.GetStatus(index) == Room.PLAYING 
-                    || this.room.GetStatus(index) == Room.AI){
+                    if (this.room.GetPlayerStatus(index) == Room.PLAYING 
+                    || this.room.GetPlayerStatus(index) == Room.AI){
                         this.WriteLine("Client is playing, dont leave");
                         return;
                     }
@@ -229,7 +283,7 @@ namespace Server{
                     this.lobbysession.Add(client);
                     client.Join(this.lobbysession);
                     this.Remove(client);
-                    this.Send(this.lobbysession, "UpdateRoom");
+                    this.Send(this.lobbysession, "UpdateLobby");
                     break;
                 }
                 case "UpdateRoom":{
@@ -242,7 +296,7 @@ namespace Server{
                         this.WriteLine("Message dont need any parameters");
                         return;
                     }
-                    this.Send(this.lobbysession, "UpdateRoom");
+                    this.Send(this.lobbysession, "UpdateLobby");
                     break;
                 }
                 case "GameFinished":{
@@ -272,7 +326,7 @@ namespace Server{
                     this.room.StopGame(winner);
                     this.room.Refresh();
                     this.UpdateRoomForClients();
-                    this.Send(this.lobbysession, "UpdateRoom");
+                    this.Send(this.lobbysession, "UpdateLobby");
                     this.gamesession.Destroy();
                     this.gamesession = null;
                     break;
@@ -289,7 +343,7 @@ namespace Server{
                         return;
                     }
 
-                    if (iplayer != this.room.host){
+                    if (iplayer != this.room.GetHost()){
                         this.Send(this.clientsessions[iplayer], "Failure:Only host can set AI");
                         return;
                     }
@@ -321,7 +375,7 @@ namespace Server{
                         this.WriteLine("This message must have a parameters");
                         return;
                     }
-                    if (iplayer != this.room.host){
+                    if (iplayer != this.room.GetHost()){
                         this.Send(this.clientsessions[iplayer], "Failure:Only host can set AI");
                         return;
                     }
@@ -342,13 +396,37 @@ namespace Server{
                     this.UpdateRoomForClients();
                     break;
                 }
+                case "UpdateSelf":{
+                    if (message.id != this.id){
+                        this.WriteLine("This message must come from RoomSession");
+                        return;
+                    }
+                    if (message.args != null){
+                        this.WriteLine("This message dont need any parameters");
+                        return;
+                    }
+
+                    this.UpdateRoomForClients();
+                    break;
+                }
                 default:{
                     this.WriteLine("Cannot identify message");
                     break;                
                 }
             }
         }
+        public override void Start(){
+            this.StartWaitForStartGame();
+            this.StartWaitForUpdate();
+            base.Start();
+        }
+        public override void Stop(string mode = "normal"){
+            this.StopWaitForUpdate();
+            this.StopWaitForStartGame();
+            base.Stop(mode);
+        }
         public void UpdateRoomForClients(){
+            this.oldstatus = this.ToString(0);
             for(int i = 0; i < this.clientsessions.Count(); i++)
                 if (this.clientsessions[i] != null)
                     this.Send(this.clientsessions[i], "RoomInfo:{0}".Format(this.ToString(i)));
@@ -366,15 +444,19 @@ namespace Server{
                 .Format(this.gamesession.OnTableInfo()));
         }
         public void Add(ClientSession client){
-            int index = this.room.Add(client.client);
+            int index = this.room.Add(client.client.user.username);
             this.clientsessions[index] = client;
             this.Send(client, "Success:JoinRoom");
+
+            if (this.gamesession != null)
+                client.Join(this.gamesession);
+
             this.UpdateRoomForClients();
             if (this.gamesession != null)
                 this.UpdateGameForClient(index);
         }
         public void Remove(ClientSession client){
-            int index = this.room.Remove(client.client);
+            int index = this.room.Remove(client.client.user.username);
             this.clientsessions[index] = null;
             this.UpdateRoomForClients();
         }

@@ -19,7 +19,7 @@ namespace Server
         
         static public readonly long BASIC = READ_SELF | READ_OTHER;
         static public readonly long AUTHENTICATED = EDIT_SELF | READ_SELF | READ_OTHER | PLAY; 
-        static public readonly long ADMINISTRATOR = READ_SELF | READ_OTHER_PASS | READ_OTHER;
+        static public readonly long ADMINISTRATOR = READ_SELF | READ_OTHER_PASS | READ_OTHER | EDIT_OTHER;
 
         public UserPermission(Permission permission) : base(permission){
         }
@@ -29,7 +29,6 @@ namespace Server
     public class User{
         //### ATTRIBUTES ###
         static public User __administrator__;
-        static private List<User> LoggedIn;
         private UserPermission permission;
 
         // __lock__ sử dụng cho việc tạo ra tính độc nhất khi ghi, lấy dữ liệu
@@ -51,7 +50,6 @@ namespace Server
             User.__administrator__ = new User();
             User.__administrator__.permission.SetNew(UserPermission.ADMINISTRATOR);
             User.__administrator__.username = "administrator";
-            User.LoggedIn = new List<User>();
         }
         public User(){ 
             // Tạo User ảo và không cấp quyền
@@ -73,28 +71,43 @@ namespace Server
         public User(string username, string pass) : this(username) {
             // Tạo user với thông tin thực và xác thực, nếu xác thực thành công thì cấp quyền cho user, 
             // .. nếu không, không cấp quyền gì 
-            lock (User.LoggedIn)
-            {   
+            lock(WorkingCollection.__default__){
                 if (username == "administrator")
                     throw new Exception("Administrator can not log in as normal user"); 
                 
                 bool bSuccess = UserCollection.__default__.Authenticate(__administrator__, username, pass);
                 if (bSuccess == false)
                     throw new Exception("Incorrect username or password");
-                
+                    
                 // Nếu user đã đăng nhập rồi --> exception
-                if (User.InLoggedIn(this.username))
+                if (WorkingCollection.__default__.IsPlaying(this.username))
                     throw new Exception("User has already logged in another place");
 
                 if (bSuccess){
                     this.permission.SetNew(UserPermission.AUTHENTICATED);
-                    User.LoggedIn.Add(this);
+                    WorkingCollection.__default__.Change(this.username, WorkingCollection.PLAYING);
                 }
             }
         }
         
         
+        
         //- - - - - - - - - METHODS - - - - - - - - - -
+        public static User AuthenticateByToken(string token, Client client){
+            string username = UserCollection.__default__.AuthenticateByToken(token, client);
+            lock (WorkingCollection.__default__)
+            {   
+                User user = new User(username);
+                // Nếu user đã đăng nhập rồi --> exception
+                if (WorkingCollection.__default__.IsPlaying(username))
+                    throw new Exception("User has already logged in another place");
+
+                user.permission.SetNew(UserPermission.AUTHENTICATED);
+                WorkingCollection.__default__.Change(username, WorkingCollection.PLAYING);
+                return user;    
+            }
+        }
+
         public void CopyFrom(User user){
             if (this == __administrator__)
                 throw new Exception("User administrator cannot be coppied");
@@ -130,7 +143,7 @@ namespace Server
         }
         public void Authenticate(string pass){
             // Cấp thêm quyền cho user nếu xác thực danh tính
-            lock ( User.LoggedIn ) {
+            lock ( WorkingCollection.__default__ ) {
                 //if (this == __administrator__ || this.username == "administrator")
                 //    throw new Exception("Administrator can not log in as normal user");
 
@@ -140,11 +153,11 @@ namespace Server
                     throw new Exception("Incorrect username or password");
 
                 // Nếu user đã đăng nhập --> exception
-                if (User.InLoggedIn(this.username))
+                if (WorkingCollection.__default__.IsPlaying(this.username))
                     throw new Exception("User has already logged in another place");
                 
                 this.permission.SetNew(UserPermission.AUTHENTICATED);
-                User.LoggedIn.Add(this);
+                WorkingCollection.__default__.Change(this.username, WorkingCollection.PLAYING);
             }
         }
         public void Authenticate(string username, string pass) {
@@ -172,24 +185,15 @@ namespace Server
             return this.permission.HavePermission(permission);
         }
         public void Destroy(){ // Hủy User và các quyền của nó
-            lock(User.LoggedIn){
+            lock(WorkingCollection.__default__){
+                WorkingCollection.__default__.Change(this.username, WorkingCollection.NONE);
+                
                 this.username = null;
                 this.money = 0;
                 this.__lock__ = null;
                 
-                if (User.LoggedIn.Contains(this) == true){
-                    User.LoggedIn.Remove(this);
-                }
-
                 this.permission.Remove(Permission.ALL_PERMISSION);
             }
-        }
-        static public bool InLoggedIn(string username){
-            foreach (var user in User.LoggedIn){
-                if (username == user.username)
-                    return true;
-            }
-            return false;
         }
     }
 }

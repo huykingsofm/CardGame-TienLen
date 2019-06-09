@@ -567,6 +567,36 @@ namespace Server{
                     this.Send(this.roomsession, message.MessageOnly());
                     break;
                 }
+                case "Token":{
+                    if (this.client.IsLogin()){
+                        this.client.Send("Failure:Token,You have already logged in!");
+                        return;
+                    }
+
+                    if (message.id != this.id){
+                        this.WriteLine("This message must come from Client");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("This message need a parameter");
+                        return;
+                    }
+
+                    string token = message.args[0];
+                    try{
+                        this.client.user = User.AuthenticateByToken(token, this.client);
+                    }
+                    catch(Exception e){
+                        this.client.Send("Failure:Token,{0}".Format(e.Message));
+                        return;
+                    }
+
+                    this.client.Send("Success:Login,{0},{1}"
+                        .Format(this.client.user.username, this.client.user.money));
+                    this.Send(this.outdoorsession, "JoinLobby");
+                    break;
+                }
                 default:{
                     this.WriteLine("Cannot identify message!");
                     break;
@@ -608,8 +638,11 @@ namespace Server{
                 this.client.Send(m);
                 return null;
             }
+            
+            TokenCollection.__default__.Add(username, this.client.ComputeToken());
 
             this.client.Send("Success:Login,{0},{1}".Format(this.client.user.username, this.client.user.money));
+            this.client.Send("Token:{0}".Format(this.client.ComputeToken()));
             this.Send(this.outdoorsession, "JoinLobby");
             return null;
         }
@@ -651,7 +684,6 @@ namespace Server{
         public void Join(RoomSession room){
             this.roomsession = room;
             this.lobbysession = null;
-            this.gamesession = null;
             this.outdoorsession = null;
         }
         public void Join(OutdoorSession outdoor){
@@ -661,9 +693,6 @@ namespace Server{
             this.outdoorsession = outdoor;
         }
         public void Join(GameSession gamesession){
-            if (this.roomsession == null)
-                throw new Exception("User must be in room to start game");
-                
             this.lobbysession = null;
             this.gamesession = gamesession;
             this.outdoorsession = null;

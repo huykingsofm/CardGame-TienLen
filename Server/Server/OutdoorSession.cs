@@ -77,7 +77,7 @@ namespace Server{
                         return;
                     }
 
-                    if (this.outdoor.clients[index].IsLogin() == false){
+                    if  ( this.outdoor.clients[index].IsLogin() == false){
                         this.Send(this.clientsessions[index], "Failure:Login,Please log in before");
                         return;
                     }
@@ -85,7 +85,7 @@ namespace Server{
                     try{
                         this.lobbysession.Add(this.clientsessions[index]);
                         this.clientsessions[index].Join(this.lobbysession);
-                        this.Remove(this.clientsessions[index]);
+                        this.Remove(this.clientsessions[index], forever:false);
                     }
                     catch(Exception e){
                         this.WriteLine(e.Message);
@@ -106,7 +106,7 @@ namespace Server{
                     try{
                         int index = this.clientsessions.FindById(message.id);
                         this.clientsessions[index].Destroy();
-                        this.Remove(this.clientsessions[index]);
+                        this.Remove(this.clientsessions[index], forever:true);
                     }
                     catch (Exception e){
                         this.WriteLine(e.Message);
@@ -128,8 +128,12 @@ namespace Server{
             int index = this.outdoor.Add(clientsession.client);
             this.clientsessions[index] = clientsession;
         }
-        public void Remove(ClientSession clientsession){
-            int index = this.outdoor.Remove(clientsession.client);
+        public void Remove(ClientSession clientsession, bool forever){
+            int index = -1;
+            if (forever)
+                index = this.outdoor.RemoveForever(clientsession.client);
+            else
+                index = this.outdoor.Remove(clientsession.client);
             this.clientsessions[index] = null;
         }
         public override void Destroy(string mode = "normal"){

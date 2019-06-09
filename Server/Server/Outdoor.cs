@@ -32,10 +32,7 @@ namespace Server{
          *                             .. khi tự hủy.
          */
         public override string Name => "Outdoor";
-        public const int MAX_CLIENT = SimpleSocket.MAX_ACCEPTED_SOCKET;
-        private TcpServer server;
-        private Thread OutdoorThread;
-        private bool OutdoorStop;
+        public const int MAX_CLIENT = 1000;
         public Client[] clients;
         private int LastSlot;
         public Lobby lobby;
@@ -66,6 +63,44 @@ namespace Server{
 
             return outdoor;
         }
+        public int MapToClient(string playername){
+            for (int i = 0; i < this.clients.Count(); i++)
+                if (this.clients[i] != null && playername == this.clients[i].user.username)
+                    return i;
+            return -1;
+        }
+        public int Add(string playername, int limit = Outdoor.MAX_CLIENT){
+            if (playername == null)
+                throw new Exception("Client can't be a null instance");
+            
+            if (limit <= 0)
+                throw new Exception("Limit time must be greater than 0");
+
+            int index = this.MapToClient(playername);
+
+            if (index == -1)
+                throw new Exception("Player have not ever logged in");
+
+            Client client = this.clients[index];
+
+            if (client.IsLogin() == true)
+                client.Logout(); 
+
+            lock(this.clients){
+                int time = 0;
+                while(this.clients[this.LastSlot] != null && time < limit){
+                    this.LastSlot = (this.LastSlot + 1) % Outdoor.MAX_CLIENT;
+                    time++;
+                }
+
+                if (this.clients[this.LastSlot] != null)
+                throw new Exception("Outdoor is no more empty slot");
+
+                this.clients[this.LastSlot] = client;
+                this.WriteLine("Client enter to slot {0}", this.LastSlot);
+                return this.LastSlot;
+            }
+        }
         public int Add(Client client, int limit = Outdoor.MAX_CLIENT){
             /*
              * Mục đích : Thêm một client vào outdoor.
@@ -86,7 +121,7 @@ namespace Server{
                 throw new Exception("Limit time must be greater than 0");
 
             if (client.IsLogin() == true)
-                client.Logout();
+                client.Logout(); 
 
             lock(this.clients){
                 int time = 0;
@@ -119,7 +154,17 @@ namespace Server{
             int index = this.clients.Where(client);
             if (index == -1)
                 throw new Exception("Client do not exist in outdoor");
-            
+
+            return index;
+        }
+        public int RemoveForever(Client client){
+            if (client == null)
+                throw new Exception("Remove null instance is not allowed");
+
+            int index = this.clients.Where(client);
+            if (index == -1)
+                throw new Exception("Client do not exist in outdoor");
+
             this.clients[index] = null;
             return index;
         }
@@ -136,7 +181,7 @@ namespace Server{
                 
             foreach(var client in this.clients)
                 if (client != null)
-                    client.Disconnect();
+                    client.Logout();
 
             this.lobby = null;
         }

@@ -94,11 +94,8 @@ namespace Server{
             string IP = null;
             int Port = 0;
             try{
-                using(FileStream f = new FileStream("server.ini", FileMode.Open, FileAccess.Read)){
-                    byte[] bytearr = new byte[1000];
-                    int len = f.Read(bytearr);
-                    string content = Encoding.ASCII.GetString(bytearr, 0, len);
-                    JsonValue initserver = JsonValue.Parse(content);
+                using(var f = new JsonReader("server.ini")){
+                    JsonValue initserver = f.Read();
                     IP = initserver["IP"];
                     Port = initserver["Port"];
                 }

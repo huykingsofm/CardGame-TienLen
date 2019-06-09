@@ -125,7 +125,7 @@ namespace Server
         }
         public bool Move(CardSet moveset)
         {
-            Server.Move move = Server.Move.Create(this, moveset);
+            Server.Move move = Server.Move.Create(moveset);
 
             if (move == null) // Nếu nước đánh không hợp lệ
                 return false;
@@ -137,6 +137,12 @@ namespace Server
                 this.cards[value] = false;
             }
 
+            return true;
+        }
+        public bool In(CardSet cardset){
+            for (int i = 0; i < 52; i++)
+                if (this.cards[i] == true && cardset.cards[i] == false)
+                    return false;
             return true;
         }
         public bool Move(List<Card> list)

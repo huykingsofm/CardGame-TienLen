@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
 using System.Text;
+using System.Json;
 
 namespace Server{
     public class GameSession : Session{
@@ -17,10 +18,16 @@ namespace Server{
         private int BetMoney;
         private bool TimerStop;
         private bool AIStop;
+        private bool WaitTimerStop;
+        private bool WaitGameInfoStop;
         public override string Name => "GameSession";
         private Thread timerthread;
         private Thread AIThread;
+        private Thread WaitTimerThread;
+        private Thread WaitGameInfoThread;
         RoomSession room;
+        private string oldtime;
+        private string oldstatus;
 
         protected GameSession(RoomSession room, ClientSession[] clients, Game game, int BetMoney) : base(){
             this.clientsessions = clients;
@@ -45,47 +52,80 @@ namespace Server{
             this.TimerStop = false; // turn off
             int interval_time = 1000;
             int time = Game.TIMEOUT;
-            int iplayer = this.game.whoturn;
+            int iplayer = this.game.GetWhoTurn();
             while(time > 0 && this.TimerStop == false){
                 Thread.Sleep(interval_time);
                 time -= (int)(interval_time / 1000);
-                this.Send(this, "Time:{0},{1}".Format(iplayer, time) );
+                this.game.SetTime("{0},{1}".Format(iplayer, time));
             }
             if (this.TimerStop == false)
                 this.Send(this, "Timeout:{0}".Format(iplayer));
         }
-        private Thread StartTimer(){
+        private void StartTimer(){
+            if (GameCollection.__default__.GetServer(this.game.id) != Program.socket)
+                return;
+
             this.StopTimer();
             this.timerthread = new Thread(this.Timer);
             this.timerthread.Start();
-            return this.timerthread;
         }
         private void StopTimer(){
+            if (GameCollection.__default__.GetServer(this.game.id) != Program.socket)
+                return;
+            
             this.TimerStop = true;
             while (this.timerthread != null && this.timerthread.IsAlive == true){
                 Thread.Sleep(300);
                 this.TimerStop = true;
             }
         }
+        private void WaitForTimer(){
+            this.WaitTimerStop = false;
+            while(this.WaitTimerStop == false){
+                Thread.Sleep(200);
+                string timestatus = this.game.GetTime();
+                if (timestatus != this.oldtime){
+                    this.oldtime = timestatus;
+                    this.Send(this, "Time:{0}".Format(timestatus));
+                }
+            }
+        }
+        private void StartWaitForTimer(){
+            this.WaitTimerThread = new Thread(this.WaitForTimer);
+            this.WaitTimerThread.Start();
+        }
+        private void StopWaitForTimer(){
+            this.WaitTimerStop = true;
+            while (this.WaitTimerThread != null && this.WaitTimerThread.IsAlive == true){
+                Thread.Sleep(300);
+                this.WaitTimerStop = true;
+            }
+        }
+        private void WaitForGameInfo(){
+            this.WaitGameInfoStop = false;
+            while( this.WaitGameInfoStop == false){
+                string content = GameCollection.__default__.GetGameInfo(this.game.id, 0);
+            }
+        }
         private void WaitForAI(){
             this.AIStop = false;
             int index = -1;
             while (this.AIStop == false){
-                while (this.game.GetStatus(this.game.whoturn) != Room.AI 
-                && this.game.GetStatus(this.game.whoturn) != Room.AFK
+                while (this.game.GetStatus(this.game.GetWhoTurn()) != Room.AI 
+                && this.game.GetStatus(this.game.GetWhoTurn()) != Room.AFK
                 && this.AIStop == false){
                     Thread.Sleep(300);
-                    if (this.game.whoturn != index)
+                    if (this.game.GetWhoTurn() != index)
                         index = -1;
                 }
 
-                if (this.AIStop == true ||  this.game.EndGameSignal)
+                if (this.AIStop == true ||  this.game.GetEndGameSignal())
                     break;
                 
-                if (this.game.whoturn == index)
+                if (this.game.GetWhoTurn() == index)
                     continue;
 
-                index = this.game.whoturn;               
+                index = this.game.GetWhoTurn();               
 
                 if (this.game.GetStatus(index) == Room.AI){
                     try{
@@ -145,8 +185,8 @@ namespace Server{
                         return;
                     }
 
-                    if (index != this.game.whoturn){
-                        this.WriteLine("This is turn of player[{0}]", this.game.whoturn);
+                    if (index != this.game.GetWhoTurn()){
+                        this.WriteLine("This is turn of player[{0}]", this.game.GetWhoTurn());
                         return;
                     }
                     CardSet cardset = null;
@@ -172,8 +212,8 @@ namespace Server{
                         return;
                     }
  
-                    if (index != this.game.whoturn){
-                        this.WriteLine("This is turn of player[{0}]", this.game.whoturn);
+                    if (index != this.game.GetWhoTurn()){
+                        this.WriteLine("This is turn of player[{0}]", this.game.GetWhoTurn());
                         return;
                     }
                     CardSet cardset = null;
@@ -211,8 +251,8 @@ namespace Server{
                         return;
                     }
 
-                    if (index != this.game.whoturn){
-                        this.WriteLine("This is turn of player[{0}]", this.game.whoturn);
+                    if (index != this.game.GetWhoTurn()){
+                        this.WriteLine("This is turn of player[{0}]", this.game.GetWhoTurn());
                         return;
                     }
 
@@ -231,8 +271,8 @@ namespace Server{
                         return;
                     }
  
-                    if (index != this.game.whoturn){
-                        this.WriteLine("This is turn of player[{0}]", this.game.whoturn);
+                    if (index != this.game.GetWhoTurn()){
+                        this.WriteLine("This is turn of player[{0}]", this.game.GetWhoTurn());
                         return;
                     }
                     
@@ -287,8 +327,8 @@ namespace Server{
                         return;
                     }
 
-                    if (iplayer != this.game.whoturn){
-                        this.WriteLine("This is turn of {0} but {1}".Format(this.game.whoturn, iplayer));
+                    if (iplayer != this.game.GetWhoTurn()){
+                        this.WriteLine("This is turn of {0} but {1}".Format(this.game.GetWhoTurn(), iplayer));
                         return;
                     }
 
@@ -313,9 +353,9 @@ namespace Server{
             }
         }       
         private bool Play(int index, CardSet cardset){
-            if (index != this.game.whoturn)
+            if (index != this.game.GetWhoTurn())
                 throw new Exception (
-                    "This is turn of player[{0}] not {1}".Format(this.game.whoturn, index)
+                    "This is turn of player[{0}] not {1}".Format(this.game.GetWhoTurn(), index)
                 );
             lock(this){
                 List<int> res = null;
@@ -336,8 +376,8 @@ namespace Server{
             }
         }        
         private void Pass(int index){
-            if (index != this.game.whoturn)
-                throw new Exception("This is turn of {0} not {1}".Format(this.game.whoturn, index));
+            if (index != this.game.GetWhoTurn())
+                throw new Exception("This is turn of {0} not {1}".Format(this.game.GetWhoTurn(), index));
 
             lock(this){
                 List<int> ret = null;
@@ -365,8 +405,8 @@ namespace Server{
                     return;
                 }
 
-                if (index != this.game.whoturn){
-                    this.WriteLine("This is turn of player[{0}]", this.game.whoturn);
+                if (index != this.game.GetWhoTurn()){
+                    this.WriteLine("This is turn of player[{0}]", this.game.GetWhoTurn());
                     return;
                 }
 
@@ -428,8 +468,12 @@ namespace Server{
                     int loss = 0;
                     coef_money[i] = coef_money[i] * this.BetMoney;
                    
-                    if (coef_money[i] < 0 && this.clientsessions[i] != null)
-                        loss = this.clientsessions[i].client.user.ChangeMoney(coef_money[i]);
+                    if (coef_money[i] < 0)
+                        loss = UserCollection.__default__.ChangeMoney(
+                            User.__administrator__,
+                            this.game.Who(i),
+                            coef_money[i]
+                        );
                     else if(coef_money[i] > 0)
                         receiver = i;
 
@@ -439,8 +483,7 @@ namespace Server{
                 }
 
                 if (receiver != -1)
-                    coef_money[receiver] = (int) (0.9 * sum) + 
-                                           (int) (this.game.MoneyOfAfkPlayer * this.BetMoney * 0.7);
+                    coef_money[receiver] = (int) (0.9 * sum);
     
                 if(receiver != -1 && this.clientsessions[receiver] != null)   
                     this.clientsessions[receiver].client.user.ChangeMoney(coef_money[receiver]);
@@ -475,11 +518,18 @@ namespace Server{
         public override void Start(){
             this.UpdateForClients();
             base.Start();
+            
             this.StartTimer();
+            
             this.StartWaitForAI();
+            this.StartWaitForTimer();
         }
         public override void Stop(string mode = "normal"){
+            this.StopWaitForTimer();
+            
             this.StopTimer();
+
+            this.StopWaitForAI();
             base.Stop(mode);
         }
         public void WriteLog(){

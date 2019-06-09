@@ -68,6 +68,10 @@ namespace Server {
         public override string ToString(){
             return this.socket.RemoteEndPoint.ToString();
         }
+
+        public string GetIP(){
+            return (this.socket.RemoteEndPoint as IPEndPoint).Address.ToString();
+        }
         public bool IsConnected(){
             try{
                 bool part1 = this.socket.Poll(1000, SelectMode.SelectRead);

@@ -93,5 +93,17 @@ namespace Server{
         public bool Send(string str){
             return this.socket.Send(str);
         }
+
+        public string ComputeToken(){
+            if (this.IsLogin() == false)
+                throw new Exception("Client must loggin before compute token");
+
+            string hashedpass = UserCollection.__default__.GetHashPassword(
+                User.__administrator__,
+                this.user.username
+            );
+            string IP = this.socket.GetIP();
+            return Utils.HashMd5(hashedpass + IP);
+        }
     }
 }

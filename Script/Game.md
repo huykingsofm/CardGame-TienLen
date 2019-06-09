@@ -29,7 +29,7 @@
 * *UpdateMoney:<số tiền bị thay đổi 0>,<số tiền bị thay đổi 1>,...,<số tiền bị thay đổi 3>*
     > * Hiển thị hiệu ứng số tiền của các người chơi bị thay đổi (không cần hiển thị số tiền sau thay đổi)
     > * *<số tiền bị thay đổi i>* áp dụng cho người thứ i. Cách đánh chỉ số cho người chơi vẫn áp dụng như trên.
-* *GameFished:<chỉ số người thắng>*
+* *GameFinished:<chỉ số người thắng>*
     > * Hiển thị người chiến thắng, đồng thời loại bỏ hình ảnh của các bộ bài trên bàn, kết thúc game.
     > * *<chỉ số người thắng>* vẫn được áp dụng dựa trên cách đánh chỉ số cho người chơi.
 * *Success:Play*

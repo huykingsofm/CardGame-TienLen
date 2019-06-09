@@ -23,6 +23,13 @@ namespace Server
             return hashedstring;
         }
 
+        public static string HashMd5(String raw){
+            MD5 md5 = MD5.Create();
+            byte[] inputbyte = Encoding.ASCII.GetBytes(raw);
+            byte[] hashed = md5.ComputeHash(inputbyte);
+            String hashedstring = Encoding.ASCII.GetString(hashed);
+            return hashedstring;
+        }
         public static bool IsValidUsername(string username)
         {
             if (username.Length < 6 || username.Length > 18)
@@ -91,6 +98,14 @@ namespace Server
             return -1;
         }
         public static int Where(this int[] arr, int element){
+            // Return first element index in arr
+            for(int i = 0; i < arr.Count(); i++)
+                if (arr[i] == element)
+                    return i;
+
+            return -1;
+        }
+        public static int Where(this string[] arr, string element){
             // Return first element index in arr
             for(int i = 0; i < arr.Count(); i++)
                 if (arr[i] == element)

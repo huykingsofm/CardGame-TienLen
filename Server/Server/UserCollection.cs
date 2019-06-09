@@ -89,6 +89,29 @@ namespace Server
             }
             throw E_USER_NOT_EXIST;
         }
+        public string GetHashPassword(User representation, string username){
+            /* 
+            # Mục đích : Lấy thông tin *hashed passwd* của một user
+            # Trả về pw đã được hash.
+            */
+
+            // Nếu user tự lấy thông tin của chính mình, kiểm tra quyền READ_SELF
+            if (representation.username == username){
+                if (representation.HavePermission(UserPermission.READ_SELF_PASS) == false)
+                    throw E_DONT_HAVE_PERMISSION;
+            }
+            // Nếu kiểm tra thông tin người khác, kiểm tra quyền READ_OTHER
+            else if (representation.HavePermission(UserPermission.READ_OTHER_PASS) == false)
+                throw E_DONT_HAVE_PERMISSION;
+                    
+            var query = Builders<BsonDocument>.Filter.Eq("username", username);
+            List<BsonDocument> result = this.collection.Find(query).ToList();
+
+            if (result.Count() == 1)
+                return result[0]["password"].AsString;
+
+            throw E_USER_NOT_EXIST;
+        }
         public bool Authenticate(User representation, string username, string pass){
             /*  
             # Mục đích : Xác nhận người dùng
@@ -122,6 +145,29 @@ namespace Server
 
             throw E_ERROR_IN_DATABASE;
         }   
+        public string AuthenticateByToken(string token, Client client){
+            /*
+             * Xác thực người dùng bằng cách sử dụng token
+             */
+            string username = null;
+            try{
+                username = TokenCollection.__default__.GetUsername(token);
+            }
+            catch{
+                throw new Exception("Token dont match with any user");
+            }
+            
+            string hasedpw = UserCollection.__default__.GetHashPassword(
+                User.__administrator__,
+                username
+            );
+
+            string newtoken = Utils.HashMd5(hasedpw + client.socket.GetIP());
+            if (token != newtoken)
+                throw new Exception("Your token is invalid");
+            
+            return username;
+        }
         public void AddToDatabase(User representation, 
                                 string username, string rawPasswd, int money)
         {

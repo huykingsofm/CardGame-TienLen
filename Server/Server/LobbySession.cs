@@ -30,6 +30,9 @@ namespace Server{
         private OutdoorSession outdoorsession;
         private ClientSession[] clientsessions;
         private RoomSession[] roomsessions;
+        private Thread LobbyThread;
+        private bool LobbyStop;
+        private string oldstatus;
         protected LobbySession(Lobby lobby, OutdoorSession outdoor) : base(){
             if (lobby == null || outdoor == null)
                 throw new Exception("Lobby and outdoor cant be the null instances");
@@ -58,6 +61,27 @@ namespace Server{
 
             return lobbysession;
         }
+        private void WaitForUpdate(){
+            string status;
+            this.LobbyStop = false;
+            while(this.LobbyStop == false){
+                Thread.Sleep(300);
+                status = RoomCollection.__default__.GetLobbyInfo(this.lobby.id);
+                if (status == this.oldstatus)
+                    continue;
+
+                this.Send(this, "UpdateLobby");
+            }
+        }
+        private void StartWaitForUpdate(){
+            this.LobbyThread = new Thread(this.WaitForUpdate);
+            this.LobbyThread.Start();
+        }
+        private void StopWaitForUpdate(){
+            this.LobbyStop = true;
+            while(this.LobbyThread.IsAlive == true)
+                Thread.Sleep(300);
+        }
         public override void Solve(Object obj){
             /* 
              * Loại bỏ các trường hợp ngoại lệ
@@ -68,6 +92,7 @@ namespace Server{
             bool bFailure = this.clientsessions.FindById(message.id) == -1;
             bFailure &= this.roomsessions.FindById(message.id) == -1;
             bFailure &= this.outdoorsession.id != message.id;
+            bFailure &= this.id != message.id;
 
             if (bFailure){
                 this.WriteLine("Message is not compatible with any session");
@@ -107,6 +132,7 @@ namespace Server{
                         return;
                     }
   
+                    //LobbyCollection.__default__.Change(this.lobby.id, this.ToString());
                     this.UpdateForClients();
                     break;
                 }
@@ -153,9 +179,9 @@ namespace Server{
                     this.outdoorsession.Add(client);
                     break;
                 }
-                case "UpdateRoom":{
-                    if (this.roomsessions.FindById(message.id) == -1){
-                        this.WriteLine("Message must come from Room");
+                case "UpdateLobby":{
+                    if (this.roomsessions.FindById(message.id) == -1 && message.id != this.id){
+                        this.WriteLine("Message must come from Room or Lobby");
                         return;
                     }
 
@@ -163,7 +189,8 @@ namespace Server{
                         this.WriteLine("Message hasn't to contain any parameters");
                         return;
                     }
-
+                    //if (message.id != this.id)
+                    //    LobbyCollection.__default__.Change(this.lobby.id, this.ToString());
                     this.UpdateForClients();
                     break;
                 }
@@ -203,16 +230,43 @@ namespace Server{
                     this.Send(clientsession, "Success:Payin,{0}".Format(clientsession.client.user.money));
                     break;
                 }
+                case "LobbyInfo":{
+                    if (this.clientsessions.FindById(message.id) == -1){
+                        this.WriteLine("Message must come from Client");
+                        return;
+                    }
+
+                    if (message.args != null){
+                        this.WriteLine("Message hasn't to contain any parameters");
+                        return;
+                    }
+
+                    int index = this.clientsessions.FindById(message.id);
+                    
+                    this.Send(this.clientsessions[index], 
+                        "LobbyInfo:{0}"
+                        .Format(RoomCollection.__default__.GetLobbyInfo(this.lobby.id)));
+                    break;
+                }
                 default:{
                     this.WriteLine("Cannot identify message");
                     break;
                 }
             }
         }
+        public override void Start(){
+            this.StartWaitForUpdate();
+            base.Start();
+        }
+        public override void Stop(string mode = "normal"){
+            this.StopWaitForUpdate();
+            base.Stop();
+        }
         public void UpdateForClients(){
+            this.oldstatus = RoomCollection.__default__.GetLobbyInfo(this.lobby.id);
             foreach(ClientSession client in this.clientsessions)
                 if (client != null)
-                    this.Send(client, "LobbyInfo:{0}".Format(this));
+                    this.Send(client, "LobbyInfo:{0}".Format(oldstatus));
         }
         public void Add(ClientSession usersession){
             if (usersession.client.IsAlive() == false 
@@ -222,12 +276,12 @@ namespace Server{
                 return;
             }
 
-            int index = this.lobby.Add(usersession.client);
+            int index = this.lobby.Add(usersession.client.user.username);
             this.clientsessions[index] = usersession;
             this.Send(usersession, "LobbyInfo:{0}".Format(this));
         }
         public void Remove(ClientSession usersession){
-            int index = this.lobby.Remove(usersession.client);
+            int index = this.lobby.Remove(usersession.client.user.username);
             this.clientsessions[index] = null;
         }
         public override string ToString(){

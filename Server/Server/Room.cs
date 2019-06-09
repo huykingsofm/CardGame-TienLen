@@ -29,12 +29,12 @@ namespace Server{
          *      + ToString(int)  : Trả về thông tin của phòng dưới góc nhìn của một người chơi.
          */
         public override string Name => "Room";
-        public int host{get; private set;}
+        private Game game;
+        private Lobby lobby;
+        /* public int host{get; private set;}
         public int lastwinner{get; private set;}
         public int BetMoney{get; private set;}
         private Client[] clients;
-        private Game game;
-        private Lobby lobby;
         private int[] PlayerStatus; /*  
                                      *    0 - không trong phòng
                                      *    1 - có trong phòng nhưng chưa sẵn sàng
@@ -42,11 +42,13 @@ namespace Server{
                                      *    3 - có trong phòng và đang chơi game
                                      *    4 - vị trí tự động chơi game vì người chơi đã thoát đột ngột
                                      *    5 - sử dụng AI cho vị trí này 
-                                     */
+                                     
         private int RoomStatus;     /*
                                      *    Phòng đang đợi (WAITING)
                                      *    Phòng đang chơi (PLAYING)
-                                     */
+                                     
+                                    */
+        public int id{get; private set;}
         public const int NOT_IN_ROOM = 0;
         public const int NOT_READY = 1;
         public const int READY = 2;
@@ -55,24 +57,28 @@ namespace Server{
         public const int AI = 5;
         public const int ROOM_WAITING = 0;
         public const int ROOM_PLAYING = 1;
-        protected Room(Lobby lobby){
+        protected Room(Lobby lobby, int id){
             if (lobby == null)
                 throw new Exception("Lobby can not be a null instances");
 
-            this.host = -1;
-            this.lastwinner = -1;
-            this.BetMoney = 1;
-            this.game = null;
-            this.PlayerStatus = new int[]{0, 0, 0, 0}; // NOT_IN_ROOM
-            this.clients = new Client[]{null, null, null, null};
             this.lobby = lobby;
-            this.RoomStatus = Room.ROOM_WAITING;
+            this.id = id;
+            try{
+                RoomCollection.__default__.Add(
+                    idlobby     : lobby.id, 
+                    idroom      : this.id, 
+                    betmoney    : 1
+                );
+            }
+            catch{
+                // do nothing
+            }
         }
-        public static Room Create(Lobby lobby){
+        public static Room Create(Lobby lobby, int id){
             Room room = null;
             
             try{
-                room = new Room(lobby);
+                room = new Room(lobby, id);
             }
             catch(Exception e){
                 Console.WriteLine(e);
@@ -81,240 +87,126 @@ namespace Server{
             
             return room;
         }
-        public int Add(Client player){
-            if (player ==  null)
-                throw new Exception("Player can not be a null instance");
-
-            if (this.clients.Where(player) != -1)
-                throw new Exception("User has been in this room");
-
-            lock(this.clients){
-                int index = this.PlayerStatus.Where(Room.NOT_IN_ROOM);
-                if (index == -1)
-                    throw new Exception("Room is full");
-
-                this.clients[index] = player;
-                this.PlayerStatus[index] = Room.NOT_READY;
-                
-                this.host = this.host == -1 ? index : this.host;
-
-                return index;
-            }
+        public int Add(string playername){
+           return RoomCollection.__default__.AddUserToRoom(this.id, playername);
         }
-        public int Remove(Client player){
-            if (player == null)
-                throw new Exception("Player can not be a null instance");
-
-            int index = this.clients.Where(player);
-            if (index == -1)
-                throw new Exception("Player do not exist in room");
-
-            lock(this.clients){
-                if (this.PlayerStatus[index] == Room.PLAYING){
-                    int changeMoney = this.game.AFK(player) * this.BetMoney;
-                    player.user.ChangeMoney(- changeMoney);
-                    this.PlayerStatus[index] = Room.AFK;
-                }
-                else
-                    this.PlayerStatus[index] = Room.NOT_IN_ROOM;
-
-                this.clients[index] = null;
-                
-                this.host = this.host == index ? -1 : this.host;
-                this.lastwinner = this.lastwinner == index ? -1 : this.lastwinner;
-
-                if (this.host == -1)
-                    for (int add = 0; add < this.clients.Count(); add++){
-                        int i = (index + add) % this.clients.Count();
-                        if (this.PlayerStatus[i] != Room.NOT_IN_ROOM &&
-                            this.PlayerStatus[i] != Room.AFK &&
-                            this.PlayerStatus[i] != Room.AI){
-                            this.host = i;
-                            break;
-                        }
-                    }
-            }
-            
-            return index;
+        public int Remove(string playername){
+            return RoomCollection.__default__.RemoveUserFromRoom(this.id, playername);
         }
-        public void Ready(Client player){
-            if (player == null)
-                throw new Exception("Player cannot a null instance");
-
-            if (this.RoomStatus == Room.ROOM_PLAYING)
-                throw new Exception("Everybody are playing. Please wait for ending");
-
-            int index = this.clients.Where(player);
-            
-            if (index == this.host)
-                throw new Exception("You are the host. It is unnecessary to ready");
-
-            if (index < 0 || index >= this.clients.Count() || this.clients[index] == null)
-                throw new Exception("Player[{0}] do not exist in room");
-            
-            if (this.PlayerStatus[index] != Room.NOT_READY)
-                throw new Exception("Player cannot ready now");
-
-            this.PlayerStatus[index] = Room.READY;
+        public void Ready(string playername){
+            RoomCollection.__default__.Ready(this.id, playername);
         }
-        public void UnReady(Client player){
-            if (player == null)
-                throw new Exception("Player cannot a null instance");
-
-            if (this.RoomStatus == Room.ROOM_PLAYING)
-                throw new Exception("Everybody are playing. Please wait for ending");
-
-            int index = this.clients.Where(player);
-            
-            if (index < 0 || index >= this.clients.Count() || this.clients[index] == null)
-                throw new Exception("Player[{0}] do not exist in room");
-
-            if (this.PlayerStatus[index] != Room.READY)
-                throw new Exception("Player cannot unready now");
-
-            this.PlayerStatus[index] = Room.NOT_READY;
+        public void UnReady(string playername){
+            RoomCollection.__default__.UnReady(this.id, playername);
         }
         public void SetAI(int index){
-            if (this.RoomStatus == Room.ROOM_PLAYING)
-                throw new Exception("Everybody are playing. Please wait for ending");
-
-            if (this.PlayerStatus[index] == Room.AI)
-                throw new Exception("This position has already been a AI");
-            
-            if (this.PlayerStatus[index] != Room.NOT_IN_ROOM)
-                throw new Exception("This position was hold by another player");
-
-            this.PlayerStatus[index] = Room.AI;
+            RoomCollection.__default__.SetAI(this.id, index);
         }
-
         public void RemoveAI(int index){
-            if (this.RoomStatus == Room.ROOM_PLAYING)
-                throw new Exception("Everybody are playing. Please wait for ending");
-
-            if (this.PlayerStatus[index] == Room.NOT_IN_ROOM)
-                throw new Exception("This status is a empty slot");
-
-            if (this.PlayerStatus[index] != Room.AI)
-                throw new Exception("This position is not a AI slot");
-            
-            this.PlayerStatus[index] = Room.NOT_IN_ROOM;
+            RoomCollection.__default__.RemoveAI(this.id, index);
         }
-        public void SetBetMoney(Client client, int betmoney){
-            if (this.RoomStatus == Room.ROOM_PLAYING)
-                throw new Exception("Everybody are playing, dont set bet money");
-
-            int index = this.clients.Where(client);
-
-            if (index != this.host)
-                throw new Exception("Only host can adjust betmoney");
-
-            if (betmoney < 0)
-                throw new Exception("Bet money must be positive number");
-            
-            if (betmoney > 1e6)
-                throw new Exception("Bet money is too big");
-
-            this.BetMoney = betmoney;
+        public void SetBetMoney(int betmoney){
+            RoomCollection.__default__.SetBetMoney(this.id, betmoney);
         }
-        public Game StartGame(){
-            if (this.RoomStatus == Room.ROOM_PLAYING)
+        public void StartGame(){
+            if (this.GetRoomStatus() == Room.ROOM_PLAYING)
                 throw new Exception("Room are playing");
                 
-            if (this.PlayerStatus.CountDiff(Room.NOT_IN_ROOM) < 2)
+            int[] PlayerStatus = this.GetAllPlayerStatus();
+
+            if (PlayerStatus.CountDiff(Room.NOT_IN_ROOM) < 2)
                 throw new Exception("It need at least 2 player to start game");
 
-            lock(this.clients){
-                int ready = this.PlayerStatus.Count(element:Room.READY) + 1; // Chủ phòng không cần ready
-                int ai = this.PlayerStatus.Count(element:Room.AI);
+            int ready = PlayerStatus.Count(element:Room.READY) + 1; // Chủ phòng không cần ready
+            int ai = PlayerStatus.Count(element:Room.AI);
 
-                int inroom = this.PlayerStatus.CountDiff(element:Room.NOT_IN_ROOM);
+            int inroom = PlayerStatus.CountDiff(element:Room.NOT_IN_ROOM);
 
-                if (ready + ai < inroom)
-                    throw new Exception("Someone hasn't been ready yet");
+            if (ready + ai < inroom)
+                throw new Exception("Someone hasn't been ready yet");
 
-                //Continue at this
-                try{
-                    this.game = Game.Create(this.clients, this.PlayerStatus, this.lastwinner);
-                }
-                catch(Exception e){
-                    this.WriteLine(e.Message);
-                    return null;
-                }
-                for (int i = 0; i < this.clients.Count(); i++)
-                    if (this.clients[i] != null)
-                        this.PlayerStatus[i] = Room.PLAYING;
+            try{
+                Game.CreateInCollection(this.id, this.GetAllPlayerNames(), PlayerStatus, this.GetLastWinner());
             }
-            
-            this.RoomStatus = Room.ROOM_PLAYING;
+            catch(Exception e){
+                this.WriteLine(e.Message);
+                return;
+            }
+            RoomCollection.__default__.SetRoomStatus(this.id, Room.ROOM_PLAYING);
+        }
+        public Game CreateGame(){
+            this.game = new Game(this.id);
             return this.game;
         }
-
         public void Refresh(){
-            for (int i = 0; i < this.clients.Count(); i++){
-                if (this.clients[i] == null)
-                    this.PlayerStatus[i] = Room.NOT_IN_ROOM;
+            string[] playernames = this.GetAllPlayerNames(); 
+            int[] playerstatus = this.GetAllPlayerStatus();
+            for (int i = 0; i < 4; i++){
+                if (playernames[i] == null)
+                    playerstatus[i] = Room.NOT_IN_ROOM;
             
-                if (this.lastwinner == i && this.PlayerStatus[i] == Room.NOT_IN_ROOM)
-                    this.lastwinner = -1;
+                if (this.GetLastWinner() == i && playerstatus[i] == Room.NOT_IN_ROOM)
+                    this.SetLastWinner(-1);
             }
         }
-
         public void StopGame(int winner){
-            if (this.RoomStatus == Room.ROOM_WAITING)
+            if (this.GetRoomStatus() == Room.ROOM_WAITING)
                 throw new Exception("Room are waiting, no game to stop");
 
-            lock(this.clients){
-                for (int i = 0; i < this.clients.Count(); i++)
-                    if (this.clients[i] != null)
-                        this.PlayerStatus[i] = Room.NOT_READY;
+            string[] playernames = this.GetAllPlayerNames();
+            for (int i = 0; i < 4; i++)
+                if (playernames[i] != null)
+                    this.SetPlayerStatus(i, Room.NOT_READY);
                 
-                this.game = null;
-            }
+            this.game = null;
             
-            this.lastwinner = winner;
-            this.RoomStatus = Room.ROOM_WAITING;
+            this.SetLastWinner(winner);
+            this.SetRoomStatus(Room.ROOM_WAITING);
             this.Refresh();
         }
         public void Destroy(){
-            foreach(var client in this.clients)
-                if (client != null){
-                    this.Remove(client);
-                    this.lobby.Add(client);
+            string[] playernames = this.GetAllPlayerNames();
+            foreach(var playername in playernames)
+                if (playername != null){
+                    this.Remove(playername);
+                    this.lobby.Add(playername);
                 }
         }
-        public string GeneralInfo(){
-            return "{0},{1},{2}".Format(this.clients.CountRealInstance(), this.BetMoney, this.RoomStatus);
-        } 
         public string ToString(int index){
-            if (index < 0 || index > this.clients.Count() || this.clients[index] == null)
-                throw new Exception("User[{0}] is not exist in room".Format(index));
-
-            // Lấy thông tin của bàn chơi dưới cái nhìn của người chơi thứ index
-            string[] arr = new string[this.clients.Count() + 2];
-
-            // Thông tin của người chơi thứ index
-            arr[0] = this.BetMoney.ToString();
-
-            int count = 2;
-            for (int add = 0; add < this.clients.Count(); add++){
-                int i = (index + add) % this.clients.Count();
-                if (this.clients[i] == null)
-                    arr[count] = "none,0,{0}".Format(this.PlayerStatus[i]);
-                else
-                    arr[count] = "{0},{1}".Format(this.clients[i].UserInfo(), this.PlayerStatus[i]);
-
-                if (i == this.host){
-                    arr[1] = (count - 2).ToString();
-                }
-                count += 1;
-            }
-
-            string ret = String.Join(",", arr);
-            return ret;
+            return RoomCollection.__default__.GetRoomInfo(this.id, index);
         }
-
-        public int GetStatus(int index){
-            return this.PlayerStatus[index];
+        public void SetLastWinner(int value){
+            RoomCollection.__default__.SetLastWinner(this.id, value);
+        }
+        public void SetPlayerStatus(int index, int value){
+            RoomCollection.__default__.SetPlayerStatus(this.id, index, value);
+        }
+        public void SetRoomStatus(int value){
+            RoomCollection.__default__.SetRoomStatus(this.id, value);
+        }
+        public int GetHost(){
+            return RoomCollection.__default__.GetHost(this.id);
+        }
+        public int GetRoomStatus(){
+            return RoomCollection.__default__.GetRoomStatus(this.id);
+        }
+        public int[] GetAllPlayerStatus(){
+            return RoomCollection.__default__.GetAllPlayerStatus(this.id);
+        }
+        public bool GameExist(){
+            return RoomCollection.__default__.GameExist(this.id);
+        }
+        public string[] GetAllPlayerNames(){
+            return RoomCollection.__default__.GetAllPlayerNames(this.id);
+        }
+        public int GetLastWinner(){
+            return RoomCollection.__default__.GetLastWinner(this.id);
+        }
+        public int GetBetMoney(){
+            return RoomCollection.__default__.GetBetMoney(this.id);
+        }
+        public int GetPlayerStatus(int index){
+            return RoomCollection.__default__.GetPlayerStatus(this.id, index);
         }
     }
 }

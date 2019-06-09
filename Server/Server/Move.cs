@@ -26,41 +26,26 @@ namespace Server
 
 
         // - - - - - - CONSTRUCTOR - - - - - - 
-        public Move(CardSet onhandset, CardSet moveset)
+        public Move(CardSet moveset)
         {
             this.moveset = moveset;
 
-            if (this.IsMoveOnHand(onhandset) == false)
-            {
-                this.status = -1;
-                this.values = null;
-                return;
-            }
+            this.status = -1;
+            this.values = null;
 
             this.SetupStatus();
             this.SetupValues();
         }
 
-        public static Move Create(CardSet onhandset, CardSet moveset)
+        public static Move Create(CardSet moveset)
         {
-            Move move = new Move(onhandset, moveset);
+            Move move = new Move(moveset);
             if (move.status == -1)
                 return null;
             return move;
         }
 
         // - - - - - - METHOD - - - - - - - 
-        private bool IsMoveOnHand(CardSet onhandset)
-        {
-
-            // Kiểm tra các quân bài trong move có tồn tại trong tập 
-            // ..bài trên tay không
-            for (int i = 0; i < CardSet.MAX_CARDS; i++)
-                if (this.moveset.cards[i] == true && onhandset.cards[i] == false)
-                    return false;
-
-            return true;
-        }
         private void SetupStatus()
         {
             List<Card> list = this.moveset.ToList();
