@@ -661,9 +661,6 @@ namespace Server{
             this.outdoorsession = outdoor;
         }
         public void Join(GameSession gamesession){
-            if (this.roomsession == null)
-                throw new Exception("User must be in room to start game");
-                
             this.lobbysession = null;
             this.gamesession = gamesession;
             this.outdoorsession = null;
