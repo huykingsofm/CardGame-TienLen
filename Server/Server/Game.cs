@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Threading;
 using System.IO;
 using System.Diagnostics;
-using System.Text;
+using System.Json;
 
 namespace Server{
     public class Game : Thing{
@@ -121,17 +119,13 @@ namespace Server{
             return game;
         }
 
-        public CardSet GetMoveFromAI(string aipath = null){
-            string fullpath;    // = Utils.GetPathOfThis() + @"\..\..\Game\";
-            fullpath = @"C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Game\";
-            /* 
-            if (aipath == null)
-                aipath = fullpath + "AI.exe";
-
-            aipath = @"C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\AI\bin\Debug\netcoreapp2.2\win10-x64\AI.exe";
-            */
-            
-            aipath = @"C:\Users\HuyML\Downloads\AISupporter\AISupporter\bin\Debug\AISupporter.exe"; 
+        public CardSet GetMoveFromAI(){
+            string fullpath = Utils.GetPathOfThis() + @"\Game\";
+            string aipath;
+            using (var f = new JsonReader("AI.ini")){
+                JsonValue jsv = f.Read();
+                aipath = jsv["path"];
+            }
             string name = DateTime.Now.Ticks.ToString();
             string inputfile = fullpath + name + ".inp";
             string outputfile = fullpath + name + ".out";
@@ -178,14 +172,6 @@ namespace Server{
                 }
                 return tmp;
             }
-        }
-        public int AFK(Client client){
-            int index = this.players.Where(client);
-            if (index == -1)
-                throw new Exception("Player is not exist in game");
-
-            this.MoneyOfAfkPlayer += this.cards[index].Count() * 2;
-            return this.cards[index].Count() * 2;
         }
         public List<int> Play(CardSet moveset){ 
             /*
