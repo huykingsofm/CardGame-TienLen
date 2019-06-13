@@ -125,7 +125,7 @@ namespace Server{
 
             if (this.outdoorsession != null && this.outdoorsession.id == message.id)
                 bValid = true;
-
+            
             if (bValid == false){
                 this.WriteLine("Cannot identify message!");
                 return;
@@ -661,9 +661,6 @@ namespace Server{
             this.outdoorsession = outdoor;
         }
         public void Join(GameSession gamesession){
-            if (this.roomsession == null)
-                throw new Exception("User must be in room to start game");
-                
             this.lobbysession = null;
             this.gamesession = gamesession;
             this.outdoorsession = null;

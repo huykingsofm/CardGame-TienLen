@@ -97,8 +97,8 @@ namespace Server{
                     try{    
                         user = (ClientSession) this.clientsessions.GetById(message.id);
                         room = this.roomsessions[RoomIndex];
-                        room.Add(user);
                         user.Join(room);
+                        room.Add(user);
                         this.Remove(user);
                     }
                     catch(Exception e){
@@ -201,6 +201,24 @@ namespace Server{
                     clientsession.client.user.ChangeMoney(money);
                     clientsession.client.user.GetInfo();
                     this.Send(clientsession, "Success:Payin,{0}".Format(clientsession.client.user.money));
+                    break;
+                }
+                case "LobbyInfo":{
+                    if (this.clientsessions.FindById(message.id) == -1){
+                        this.WriteLine("Message must come from Client");
+                        return;
+                    }
+
+                    if (message.args != null){
+                        this.WriteLine("Message hasn't to contain any parameters");
+                        return;
+                    }
+
+                    int index = this.clientsessions.FindById(message.id);
+                    
+                    this.Send(this.clientsessions[index], 
+                        "LobbyInfo:{0}"
+                        .Format(this));
                     break;
                 }
                 default:{
