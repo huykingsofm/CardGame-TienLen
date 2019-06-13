@@ -11,8 +11,8 @@ namespace client {
     public class TcpClientModel {
         static ASCIIEncoding encoding = new ASCIIEncoding();
         static int MAX_BUFFER_SIZE = 1024;
-        static int SERVER_PORT = 1999;
-        static String SERVER_IP = "172.17.21.85";
+        static int SERVER_PORT = 2019;
+        static String SERVER_IP = "172.30.76.118";
 
         private TcpClient _tcpClient;
         private Stream _stream;
@@ -61,8 +61,7 @@ namespace client {
                 Console.WriteLine("ReceiveResponse Error: " + ex.StackTrace);
                 return null;
             }
-
-            Console.WriteLine("ReceiveResponse: " + res);
+            
             if (res == "") return null;
             return res;
         }

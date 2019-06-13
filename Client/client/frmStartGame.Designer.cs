@@ -40,6 +40,7 @@
             this.btnLoginSubmit = new System.Windows.Forms.Button();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.lblWelcome = new System.Windows.Forms.Label();
+            this.btnExit = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // pBar
@@ -57,20 +58,24 @@
             this.txtUsername.Name = "txtUsername";
             this.txtUsername.Size = new System.Drawing.Size(176, 23);
             this.txtUsername.TabIndex = 5;
+            this.txtUsername.Text = "ttavyud";
             // 
             // txtPassword
             // 
             this.txtPassword.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtPassword.Location = new System.Drawing.Point(170, 156);
             this.txtPassword.Name = "txtPassword";
+            this.txtPassword.PasswordChar = '*';
             this.txtPassword.Size = new System.Drawing.Size(176, 23);
             this.txtPassword.TabIndex = 7;
+            this.txtPassword.Text = "ttavyud";
             // 
             // txtPassword2
             // 
             this.txtPassword2.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtPassword2.Location = new System.Drawing.Point(170, 196);
             this.txtPassword2.Name = "txtPassword2";
+            this.txtPassword2.PasswordChar = '*';
             this.txtPassword2.Size = new System.Drawing.Size(176, 23);
             this.txtPassword2.TabIndex = 9;
             // 
@@ -101,13 +106,13 @@
             // btnSignUp
             // 
             this.btnSignUp.BackColor = System.Drawing.Color.White;
-            this.btnSignUp.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnSignUp.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnSignUp.ForeColor = System.Drawing.Color.Black;
             this.btnSignUp.Image = ((System.Drawing.Image)(resources.GetObject("btnSignUp.Image")));
             this.btnSignUp.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnSignUp.Location = new System.Drawing.Point(12, 9);
             this.btnSignUp.Name = "btnSignUp";
-            this.btnSignUp.Size = new System.Drawing.Size(179, 37);
+            this.btnSignUp.Size = new System.Drawing.Size(203, 37);
             this.btnSignUp.TabIndex = 0;
             this.btnSignUp.Text = "Sign Up New Account";
             this.btnSignUp.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -117,14 +122,14 @@
             // btnLogin
             // 
             this.btnLogin.BackColor = System.Drawing.Color.White;
-            this.btnLogin.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnLogin.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnLogin.Image = ((System.Drawing.Image)(resources.GetObject("btnLogin.Image")));
             this.btnLogin.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.btnLogin.Location = new System.Drawing.Point(312, 9);
+            this.btnLogin.Location = new System.Drawing.Point(266, 9);
             this.btnLogin.Name = "btnLogin";
-            this.btnLogin.Size = new System.Drawing.Size(175, 37);
+            this.btnLogin.Size = new System.Drawing.Size(218, 37);
             this.btnLogin.TabIndex = 1;
-            this.btnLogin.Text = "       Log In Your Account";
+            this.btnLogin.Text = "Log In Your Account";
             this.btnLogin.UseVisualStyleBackColor = false;
             this.btnLogin.Click += new System.EventHandler(this.btnLogin_Click);
             // 
@@ -152,6 +157,7 @@
             // 
             this.lblPassword2.BackColor = System.Drawing.Color.Transparent;
             this.lblPassword2.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblPassword2.ForeColor = System.Drawing.Color.Black;
             this.lblPassword2.Image = global::client.Properties.Resources.password2;
             this.lblPassword2.Location = new System.Drawing.Point(126, 196);
             this.lblPassword2.Name = "lblPassword2";
@@ -161,7 +167,7 @@
             // btnSignUpSubmit
             // 
             this.btnSignUpSubmit.BackColor = System.Drawing.Color.White;
-            this.btnSignUpSubmit.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnSignUpSubmit.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnSignUpSubmit.Location = new System.Drawing.Point(170, 240);
             this.btnSignUpSubmit.Name = "btnSignUpSubmit";
             this.btnSignUpSubmit.Size = new System.Drawing.Size(176, 27);
@@ -173,7 +179,7 @@
             // btnLoginSubmit
             // 
             this.btnLoginSubmit.BackColor = System.Drawing.Color.White;
-            this.btnLoginSubmit.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnLoginSubmit.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnLoginSubmit.Location = new System.Drawing.Point(170, 240);
             this.btnLoginSubmit.Name = "btnLoginSubmit";
             this.btnLoginSubmit.Size = new System.Drawing.Size(176, 27);
@@ -198,6 +204,18 @@
             this.lblWelcome.TabIndex = 11;
             this.lblWelcome.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
+            // btnExit
+            // 
+            this.btnExit.BackColor = System.Drawing.Color.White;
+            this.btnExit.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnExit.Location = new System.Drawing.Point(395, 425);
+            this.btnExit.Name = "btnExit";
+            this.btnExit.Size = new System.Drawing.Size(89, 36);
+            this.btnExit.TabIndex = 13;
+            this.btnExit.Text = "EXIT";
+            this.btnExit.UseVisualStyleBackColor = false;
+            this.btnExit.Click += new System.EventHandler(this.btnExit_Click);
+            // 
             // frmStartGame
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -205,6 +223,7 @@
             this.BackgroundImage = global::client.Properties.Resources.logo;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.ClientSize = new System.Drawing.Size(496, 473);
+            this.Controls.Add(this.btnExit);
             this.Controls.Add(this.lblWelcome);
             this.Controls.Add(this.btnLoginSubmit);
             this.Controls.Add(this.btnSignUpSubmit);
@@ -248,6 +267,7 @@
         private System.Windows.Forms.Button btnLoginSubmit;
         private System.Windows.Forms.Timer timer1;
         private System.Windows.Forms.Label lblWelcome;
+        private System.Windows.Forms.Button btnExit;
     }
 }
 

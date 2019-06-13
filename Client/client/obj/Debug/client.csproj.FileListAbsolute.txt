@@ -32,3 +32,6 @@ E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.csproj.CoreCompileInput
 E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.exe
 E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.pdb
 E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.frmRoom.resources
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.frmLost.resources
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.frmWinner.resources
+E:\LTMCB\CardGame-TienLen\Client\client\obj\Debug\client.frmPayIn.resources

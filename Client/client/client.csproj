@@ -55,6 +55,18 @@
     <Compile Include="frmLobby.Designer.cs">
       <DependentUpon>frmLobby.cs</DependentUpon>
     </Compile>
+    <Compile Include="frmLost.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmLost.Designer.cs">
+      <DependentUpon>frmLost.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmPayIn.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmPayIn.Designer.cs">
+      <DependentUpon>frmPayIn.cs</DependentUpon>
+    </Compile>
     <Compile Include="frmRoom.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -67,6 +79,12 @@
     <Compile Include="frmStartGame.Designer.cs">
       <DependentUpon>frmStartGame.cs</DependentUpon>
     </Compile>
+    <Compile Include="frmWinner.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmWinner.Designer.cs">
+      <DependentUpon>frmWinner.cs</DependentUpon>
+    </Compile>
     <Compile Include="Message.cs" />
     <Compile Include="MessageQueue.cs" />
     <Compile Include="Player.cs" />
@@ -78,11 +96,20 @@
     <EmbeddedResource Include="frmLobby.resx">
       <DependentUpon>frmLobby.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="frmLost.resx">
+      <DependentUpon>frmLost.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmPayIn.resx">
+      <DependentUpon>frmPayIn.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="frmRoom.resx">
       <DependentUpon>frmRoom.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="frmStartGame.resx">
       <DependentUpon>frmStartGame.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmWinner.resx">
+      <DependentUpon>frmWinner.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -111,7 +138,7 @@
     <None Include="imgs\login.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="bin\Debug\" />
+    <None Include="imgs\win-game.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="imgs\logo.png" />
@@ -145,6 +172,27 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="imgs\coin2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="imgs\dollar.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="imgs\lobby-background.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="imgs\lobby-background2.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="imgs\lobby-background3.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Debug\ingame-imgs\card-down.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="imgs\troll2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Debug\ingame-imgs\lost.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

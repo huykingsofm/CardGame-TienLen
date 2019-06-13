@@ -28,6 +28,7 @@ namespace client {
         public static String EXIT_ROOM() { return "JoinLobby"; }
         public static String EXIT_LOBBY() { return "Logout"; }
         public static String JOIN_ROOM(int index) { return ("JoinRoom:" + index); }
+        public static String GET_LOBBY_INFO() { return "LobbyInfo"; }
         public static String NEXT_TURN() { return "NEXT"; }
         public static String READY_GAME() { return "Ready"; }
         public static String UNREADY_GAME() { return "UnReady"; }
@@ -46,5 +47,8 @@ namespace client {
             return req;
         }
         public static String SKIP() { return "Pass"; }
+        public static String SET_AI(int index) { return "SetAI:" + index; }
+        public static String REMOVE_AI(int index) { return "RemoveAI:" + index; }
+        public static String PAY_IN(String code) { return "Payin:" + code; }
     }
 }

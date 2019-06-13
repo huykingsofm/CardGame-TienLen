@@ -19,6 +19,7 @@ namespace client {
         static int MAX_PERCENT = 100;
 
         private bool isStop;
+        public int isWorking = 1;
         private TcpClientModel _client = new TcpClientModel();
         private int _progressPercent = 0; //To display progressbar
         private SoundPlayer _sPlayer = new SoundPlayer(@"audio\background-audio.wav"); //To play audio when playing game 
@@ -119,10 +120,17 @@ namespace client {
                     }
                     if(message.args[0] == "Login") {
                         this.isStop = true;
-                        this.Hide();
+                        this.isWorking = 2;
+                        this.Hide();                      
 
                         frmLobby frm = new frmLobby(this._client, this);
                         frm.ShowDialog();
+                        Console.WriteLine(this.isWorking + "-----------------------");
+                        if (this.isWorking == 1) {
+                            this.Show();
+                            this.StartHandleReponses();
+                        }
+                        //this.Show();
                     }
                     if(message.args[0] == "Signup") {
                         MessageBox.Show("" +
@@ -134,7 +142,7 @@ namespace client {
                     break;
                 case "Failure":
                     MessageBox.Show("" +
-                            message.args[0],
+                            message.args[1],
                             "Notification",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Error);
@@ -149,6 +157,8 @@ namespace client {
             this.isStop = false;
 
             while(!isStop) {
+                Thread.Sleep(300);
+                Console.WriteLine("On startgame thread");
                 Message m = MessageQueue.GetMessage();
                 if (m == null) continue;
 
@@ -156,6 +166,7 @@ namespace client {
                 //th.Start(m);
                 this.HandleResponse(m);
             }
+            //this.Close();
         }
 
         public void StopHandleResponses() {
@@ -165,17 +176,19 @@ namespace client {
         private void frmStartGame_Load(object sender, EventArgs e) {
             CheckForIllegalCrossThreadCalls = false;
 
+            btnExit.Visible = false;
             lblWelcome.Visible = false;
             pBar.Maximum = MAX_PERCENT;
 
             int success = this._onFormLoad();
+            Console.WriteLine(success);
             if(success != 1) {
                 MessageBox.Show(
                     "Connection failed!", 
                     "Exception", 
                     MessageBoxButtons.OK, 
                     MessageBoxIcon.Warning);
-            } else {
+            } else {               
                 this.timer1.Start();
                 Thread th = new Thread(this.StartHandleReponses);
                 th.Start();
@@ -185,26 +198,29 @@ namespace client {
         private void timer1_Tick(object sender, EventArgs e) {
             this.UpdateProgress();
 
-            if(this._progressPercent == 100) {
+            if(this._progressPercent >= 100) {
                 this.timer1.Stop();
 
                 //this._onMarquee();
                 this.Text = "Tiến Lên Miền Nam";
                 this._onSignUpClick();
+                btnExit.Visible = true;
                 //this._sPlayer.PlayLooping();
             }
         }
 
         private void frmStartGame_FormClosing(object sender, FormClosingEventArgs e) {
-            DialogResult dr = MessageBox.Show(
-                "Exit Game ?", 
-                "Exit", 
-                MessageBoxButtons.YesNo, 
-                MessageBoxIcon.Question);
+           if(this.isWorking == 0) {
+                DialogResult dr = MessageBox.Show(
+               "Exit Game ?",
+               "Exit",
+               MessageBoxButtons.YesNo,
+               MessageBoxIcon.Question);
 
-            //wtf
-            if(dr == DialogResult.No) {
-                this.Close();
+                //wtf
+                if (dr == DialogResult.No) {
+                    e.Cancel = true;
+                }
             }
         }
 
@@ -257,6 +273,11 @@ namespace client {
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
             }
+        }
+
+        private void btnExit_Click(object sender, EventArgs e) {
+            this.isWorking = 0;
+            this.Close();
         }
     }
 }

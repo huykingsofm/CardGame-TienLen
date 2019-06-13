@@ -39,6 +39,7 @@ namespace client {
 
                 for(int i = 0; i < messages.Count() - 1; i++) {
                     _queue.Enqueue(Message.Create(messages[i]));
+                    Console.WriteLine("From server: {0}", messages[i]);
                 }
             }
         }
