@@ -69,7 +69,7 @@ namespace Server
                 }
             }
         }
-        public void AddGame(long idroom){
+        public void SetGame(long idroom, bool value){
             var query = Builders<BsonDocument>.Filter.Eq("idroom", idroom);
             List<BsonDocument> result = this.collection.Find(query).ToList();
 
@@ -77,7 +77,7 @@ namespace Server
                 throw new Exception("One error in Room Collection");
 
             var update = Builders<BsonDocument>.Update
-                .Set("game", true);
+                .Set("game", value);
             this.collection.UpdateOne(query, update);
         }
         public bool GameExist(long idroom){
@@ -115,37 +115,55 @@ namespace Server
             if (result.Count() != 1)
                 throw new Exception("idroom is incorrect");
 
-            string[] usernames = this.GetAllPlayerNames(idroom);
-            int host = result[0]["host"].AsInt32;
+            try{
+                // Đặt người chơi vào vị trí trước đó của họ nếu họ đã từng afk mà game vẫn còn
+                int index = GameCollection.__default__.Where(idroom, username);
+                if (index == -1)
+                    throw new Exception();
 
-            int availableslot = -1;
-            for (int i = 0; i < usernames.Count(); i++)
-                if (usernames[i] == null){
-                    availableslot = i;
-                    break;
-                }
-                else if (usernames[i] == username)
-                    throw new Exception("User has been in this room");
+                string[] p = new string[]{"player1", "player2", "player3", "player4"};
+                string[] s = new string[]{"status1", "status2", "status3", "status4"};
 
-            // Tại đây, cần kiểm tra người chơi có phải đã afk ko, nếu phải
-            // khôi phục lại vị trí đó cho người chơi.
-            // Cần hoàn thành gameCollection...
+                var update = Builders<BsonDocument>.Update
+                            .Set(p[index], username)
+                            .Set(s[index], Room.PLAYING);  
+                
+                this.collection.UpdateOne(query, update);
+                StatesCollection.__default__.Change(username, "game", idroom);  
+                return index;
+            }
+            catch{
+                int[] playerstatus = this.GetAllPlayerStatus(idroom);
+                int host = result[0]["host"].AsInt32;
 
-            if (availableslot == -1)
-                throw new Exception("Room is full");     
+                int availableslot = -1;
+                for (int i = 0; i < playerstatus.Count(); i++)
+                    if (playerstatus[i] == Room.NOT_IN_ROOM){
+                        availableslot = i;
+                        break;
+                    }
 
-            string[] p = new string[]{"player1", "player2", "player3", "player4"};
-            string[] s = new string[]{"status1", "status2", "status3", "status4"};
+                // Tại đây, cần kiểm tra người chơi có phải đã afk ko, nếu phải
+                // khôi phục lại vị trí đó cho người chơi.
+                // Cần hoàn thành gameCollection...
 
-            var update = Builders<BsonDocument>.Update
-                        .Set(p[availableslot], username)
-                        .Set(s[availableslot], Room.NOT_READY);  
-            
-            if (host == -1)
-                update = update.Set("host", availableslot);
-            
-            this.collection.UpdateOne(query, update);   
-            return availableslot;
+                if (availableslot == -1)
+                    throw new Exception("Room is full");     
+
+                string[] p = new string[]{"player1", "player2", "player3", "player4"};
+                string[] s = new string[]{"status1", "status2", "status3", "status4"};
+
+                var update = Builders<BsonDocument>.Update
+                            .Set(p[availableslot], username)
+                            .Set(s[availableslot], Room.NOT_READY);  
+                
+                if (host == -1)
+                    update = update.Set("host", availableslot);
+                
+                this.collection.UpdateOne(query, update);   
+                StatesCollection.__default__.Change(username, "room", idroom);
+                return availableslot;
+            }
         }
         public int RemoveUserFromRoom(long idroom, string username){
             if ( UserCollection.__default__.IsExist(
@@ -162,6 +180,7 @@ namespace Server
 
             string[] usernames = this.GetAllPlayerNames(idroom);
             int host = result[0]["host"].AsInt32;
+            int lastwinner = result[0]["lastwinner"].AsInt32;
 
             int index = -1;
             for (int i = 0; i < usernames.Count(); i++)
@@ -180,6 +199,7 @@ namespace Server
                 newstatus = Room.AFK;
 
             host = host == index ? -1 : host;
+            lastwinner = lastwinner == index ? -1 : lastwinner;
 
             if (host == -1)
                 for (int add = 1; add < 4; add++){
@@ -195,10 +215,11 @@ namespace Server
             var update = Builders<BsonDocument>.Update
                 .Set(p[index], "")
                 .Set(s[index], newstatus)
-                .Set("host", host);  
+                .Set("host", host)
+                .Set("lastwinner", lastwinner);  
                         
             
-            this.collection.UpdateOne(query, update);   
+            this.collection.UpdateOne(query, update);  
             return index;
         }
         public void Ready(long idroom, string username){
@@ -350,7 +371,7 @@ namespace Server
 
             var query = Builders<BsonDocument>.Filter.Eq("idroom", idroom);
             var update = Builders<BsonDocument>.Update
-                .Set("status", status);
+                .Set(s[index], status);
             
             this.collection.UpdateOne(query, update);
         }

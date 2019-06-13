@@ -57,14 +57,18 @@ namespace Server{
         public void Logout(){
             if (this.user == null)
                 throw new Exception("Client hasn't logged in yet");
-            
+                
+            StatesCollection.__default__.Change(this.user.username, "nowhere", 0);
             this.user.Destroy();
             this.user = null;
         }
 
         public void Disconnect(){
-            if (this.user != null)
+            if (this.user != null){
+                StatesCollection.__default__.Change(this.user.username, "nowhere", 0);
                 this.user.Destroy();
+            }
+            user = null;
             this.socket.Close();
         }
 
@@ -103,7 +107,7 @@ namespace Server{
                 this.user.username
             );
             string IP = this.socket.GetIP();
-            return Utils.HashMd5(hashedpass + IP);
+            return this.user.username + IP;
         }
     }
 }

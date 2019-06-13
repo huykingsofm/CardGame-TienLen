@@ -103,11 +103,13 @@ namespace Server{
                     throw new Exception("Lobby is no longer any empty slot");
 
                 this.playernames[this.LastSlot] = playername;
+                
+                StatesCollection.__default__.Change(playername, "lobby", 0);
                 return this.LastSlot;
             }
 
         }
-        public int Remove(string client){
+        public int Remove(string playername){
             /*
              * Mục đích : Loại bỏ một client ra khỏi lobby.
              * Hành động : 
@@ -116,10 +118,10 @@ namespace Server{
              *      + Thực hiện khóa mảng clients[] loại bỏ client.
              */
             
-            if (client == null)
+            if (playername == null)
                 throw new Exception("client can not be a null instance");
 
-            int index = this.playernames.Where(client);
+            int index = this.playernames.Where(playername);
             if (index == -1)
                 throw new Exception("client is not exist in lobby");
 

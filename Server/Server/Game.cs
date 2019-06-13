@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Threading;
 using System.IO;
 using System.Diagnostics;
-using System.Text;
+using System.Json;
 
 namespace Server{
     public class Game : Thing{
@@ -25,106 +23,7 @@ namespace Server{
 
         public override string Name => "Game";
         public const int TIMEOUT = 30;          //(second)
-        public const string DefaultLogDir = "../GameLog/";      // Thư mục lưu các nhật ký
-        /* private CardSet[] initilization;        // Lưu lại bộ bài khởi tạo của mỗi người chơi
-        private CardSet[] cards;                // Lưu bộ bài hiện tại của mỗi người chơi.
-        private Client[] players;               // Lưu thông tin người chơi
-        private int Starter;                    // Người chơi thực hiện nước đi đầu tiên
-        private List<Move> HistoryMove;         // Lưu lịch sử nước đi.
-        private List<List<int>> HistoryResult;  // Lịch sử kết quả
-        public int whoturn{get; private set;}   // Lưu chỉ số của người hiện tại cần đánh bài.
-        private Move lastmove;                  // Nước đi cuối cùng được đánh ra.
-        private int lastplayer;                 // Chỉ số của người chơi cuối cùng đánh bài.
-        private int SpecialChain;               // = 0 nếu không có gì, > 0 nếu có chuỗi chặn heo.
-        private Card smallestcard = null;       // lá bài nhỏ nhất mà người chơi hiện tại cần phải đánh
-        private List<CardSet> onboardsets = null;           // lưu lại những bộ bài đang ở trên bàn
-        public bool EndGameSignal {get; private set;}       // Tín hiệu kết thúc game.
-        public string LogDir;                   // các file nhật ký game được lưu ở đây
-        public int[] PlayerStatus{get; private set;}    /* trạng thái các player trong game
-                                                         * Sử dụng lại các trạng thái ở lớp Room
-                                                         
-        
-        private string[] PlayerName; */
         public long id {get; private set;}
-
-        private Game(Client[] players, int[] status, int Starter, string dir){
-            /* int NumberOfPlayer = status.CountDiff(Room.NOT_IN_ROOM);
-            this.players = players;
-            this.PlayerStatus = status;
-            this.PlayerName = new string[4];
-
-            this.initilization = Deck.__default__.Divive(status);
-            this.cards = new CardSet[4];
-            
-            for (int i = 0; i < this.players.Count(); i++){
-                if (this.initilization[i] != null)
-                    this.cards[i] = this.initilization[i].Clone();
-
-                if (this.players[i] != null)
-                    this.PlayerName[i] = this.players[i].user.username;
-            }
-
-            if (Starter == -1){
-                /*
-                 * Find smallest card to known who have first turn
-                 
-                for (int i = 0; i < this.players.Count(); i++)
-                    if (this.cards[i] != null){
-                        Card tmp = this.cards[i].FindSmallest();
-                        if (this.smallestcard == null || this.smallestcard.IsLarger(tmp)){
-                            this.smallestcard = tmp;
-                            Starter = i;
-                        }
-                    }     
-            }
-
-            this.LogDir = dir.TrimEnd(new char[]{'/', '\\'}) + "/";
-
-            this.HistoryMove = new List<Move>();
-            this.HistoryResult = new List<List<int>>();
-            this.onboardsets = new List<CardSet>();
-            this.whoturn = Starter;
-            this.lastplayer = Starter;
-            this.Starter = Starter;
-            this.lastmove = null;
-            this.SpecialChain = 0;
-            this.EndGameSignal = false;
-            */
-        }
-        static public Game Create(
-            Client[] players, 
-            int[] status,
-            int Starter = 0, 
-            string dir = Game.DefaultLogDir
-            ){
-
-            if (players == null || status == null)
-                throw new Exception("Parameters cannot null instances");
-            
-            if (players.Count() != 4)
-                throw new Exception("Game need 4-users array to initialize (it can have null elements)");
-
-            int NumberOfPlayer = status.CountDiff(Room.NOT_IN_ROOM);
-
-            if (NumberOfPlayer > 4 || NumberOfPlayer < 2)
-                throw new Exception("Game need at least 2 users or at most 4 users to play");
-            
-            if (Starter != -1 && (Starter < 0 || Starter >= 4))
-                throw new Exception("Starter must be a index between 0 and 3");
-
-            if (Starter != -1 && players[Starter] == null)
-                throw new Exception("Starter can be a null instance");
-
-            if (players.Count() != status.Count())
-                throw new Exception("Player and status are not synchronized");
-
-            for (int i = 0; i < players.Count(); i++)
-                if (status[i] == Room.NOT_IN_ROOM && players[i] != null)
-                    throw new Exception("Player and status are not synchronized");
-
-            Game game = new Game(players, status, Starter, dir);
-            return game;
-        }
         public Game(long id){
             this.id = id;
         }
@@ -175,17 +74,13 @@ namespace Server{
 
             GameCollection.__default__.Add(id, playernames, initilization, Starter, smallestcard);
         }
-        public CardSet GetMoveFromAI(string aipath = null){
-            string fullpath;    // = Utils.GetPathOfThis() + @"\..\..\Game\";
-            fullpath = @"C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\Game\";
-            /* 
-            if (aipath == null)
-                aipath = fullpath + "AI.exe";
-
-            aipath = @"C:\HOCTAP\LT_MANG\CardGame-TienLen\Server\AI\bin\Debug\netcoreapp2.2\win10-x64\AI.exe";
-            */
-            
-            aipath = @"C:\Users\HuyML\Downloads\AISupporter\AISupporter\bin\Debug\AISupporter.exe"; 
+        public CardSet GetMoveFromAI(){
+            string fullpath = Utils.GetPathOfThis() + @"\Game\";
+            string aipath;
+            using (var f = new JsonReader("AI.ini")){
+                JsonValue jsv = f.Read();
+                aipath = jsv["path"];
+            }
             string name = DateTime.Now.Ticks.ToString();
             string inputfile = fullpath + name + ".inp";
             string outputfile = fullpath + name + ".out";
@@ -431,7 +326,7 @@ namespace Server{
         public int GetStatus(int index){
             return RoomCollection.__default__.GetPlayerStatus(this.id, index);
         }
-        public string ToString(int index){
+        public string GetGameInfo(int index){
             /*
              * GameInfo: (dưới góc nhìn của người ở vị trí index)
              *      + Bộ bài của người chơi hiện tại.
@@ -439,39 +334,7 @@ namespace Server{
              *      + Chỉ số người chơi đang tới lượt.
              *      + Khả năng bỏ lượt (-1 : bỏ qua, 0 : không thể bỏ lượt, 1 : có thể bỏ lượt).
              */
-            if (index < 0 || index > 4)
-                throw new Exception("User[{0}] is not exist in game".Format(index));
-
-            List<string> arr = new List<string>();
-
-            CardSet[] cards = this.GetAllCardSets();
-
-            // Thông tin của người chơi thứ index
-            if (cards[index] == null)
-                arr.Add("0");
-            else
-                arr.Add(cards[index].ToString());
-
-            int onturn = 0;
-            for (int add = 1; add < 4; add++){
-                int i = (index + add) % 4;
-                if (cards[i] == null)
-                    arr.Add("0");
-                else
-                    arr.Add(cards[i].Count().ToString());
-                
-                if (i == this.GetWhoTurn())
-                    onturn = add;
-            }
-
-            arr.Add(onturn.ToString());
-            
-            int pass = this.GetWhoTurn() == index ? 0 : -1;
-            pass = (pass == 0) && this.GetWhoTurn() == this.GetLastPlayer() ? 1 : pass;
-            arr.Add(pass.ToString());
-
-            string ret = String.Join(",", arr);
-            return ret;
+            return GameCollection.__default__.GetGameInfo(this.id, index);
         }
         public string OnTableInfo(){
             /* 

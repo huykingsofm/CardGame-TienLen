@@ -67,7 +67,7 @@ namespace Server{
                 RoomCollection.__default__.Add(
                     idlobby     : lobby.id, 
                     idroom      : this.id, 
-                    betmoney    : 1
+                    betmoney    : (id + 1) * 5
                 );
             }
             catch{
@@ -132,6 +132,12 @@ namespace Server{
                 this.WriteLine(e.Message);
                 return;
             }
+
+            string[] playernames = GameCollection.__default__.GetPlayerNames(this.id);
+            for (int i = 0; i<playernames.Count(); i++)
+                if (playernames[i] != null)
+                    StatesCollection.__default__.Change(playernames[i], "game", this.id);
+
             RoomCollection.__default__.SetRoomStatus(this.id, Room.ROOM_PLAYING);
         }
         public Game CreateGame(){
@@ -143,16 +149,17 @@ namespace Server{
             int[] playerstatus = this.GetAllPlayerStatus();
             for (int i = 0; i < 4; i++){
                 if (playernames[i] == null)
-                    playerstatus[i] = Room.NOT_IN_ROOM;
+                    this.SetPlayerStatus(i, Room.NOT_IN_ROOM);
             
                 if (this.GetLastWinner() == i && playerstatus[i] == Room.NOT_IN_ROOM)
                     this.SetLastWinner(-1);
             }
         }
         public void StopGame(int winner){
-            if (this.GetRoomStatus() == Room.ROOM_WAITING)
-                throw new Exception("Room are waiting, no game to stop");
-
+            if (this.GetRoomStatus() == Room.ROOM_WAITING){
+                this.WriteLine("Room are waiting, no game to stop");
+                return;
+            }
             string[] playernames = this.GetAllPlayerNames();
             for (int i = 0; i < 4; i++)
                 if (playernames[i] != null)
@@ -160,9 +167,18 @@ namespace Server{
                 
             this.game = null;
             
-            this.SetLastWinner(winner);
             this.SetRoomStatus(Room.ROOM_WAITING);
             this.Refresh();
+
+            if (playernames[winner] != null)
+                this.SetLastWinner(winner);
+            else
+                this.SetLastWinner(-1);
+        
+            for (int i = 0; i<playernames.Count(); i++)
+                if (playernames[i] != null)
+                    StatesCollection.__default__.Change(playernames[i], "room", this.id);
+
         }
         public void Destroy(){
             string[] playernames = this.GetAllPlayerNames();

@@ -13,6 +13,7 @@ namespace Server{
          * Mục đích : Đại diện cho game dưới dạng một thực thể phản ứng nhanh.
          * 
          */
+        public override string Name => "GameSession";
         private Game game;
         private ClientSession[] clientsessions;
         private int BetMoney;
@@ -20,20 +21,27 @@ namespace Server{
         private bool AIStop;
         private bool WaitTimerStop;
         private bool WaitGameInfoStop;
-        public override string Name => "GameSession";
+        private bool WaitStartTimerStop;
+        private bool WaitPlayingCardStop;
+        private bool WaitContinueMainServerStop;
         private Thread timerthread;
         private Thread AIThread;
         private Thread WaitTimerThread;
         private Thread WaitGameInfoThread;
+        private Thread WaitStartTimerThread;
+        private Thread WaitPlayingCardThread;
+        private Thread WaitContinueMainServerThread;
         RoomSession room;
         private string oldtime;
         private string oldstatus;
-
+        private string oldplayingcard;
+        private string oldserver;
         protected GameSession(RoomSession room, ClientSession[] clients, Game game, int BetMoney) : base(){
             this.clientsessions = clients;
             this.game = game;
             this.BetMoney = BetMoney;
             this.room = room;
+            this.oldserver = GameCollection.__default__.GetServer(this.game.id);
         }
         public static GameSession Create(RoomSession room, ClientSession[] clients, Game game, int BetMoney){
             if (game == null || room == null)
@@ -48,38 +56,123 @@ namespace Server{
             GameSession gamesession = new GameSession(room, clients, game, BetMoney);
             return gamesession;
         }
-        private void Timer(){
-            this.TimerStop = false; // turn off
-            int interval_time = 1000;
-            int time = Game.TIMEOUT;
-            int iplayer = this.game.GetWhoTurn();
-            while(time > 0 && this.TimerStop == false){
-                Thread.Sleep(interval_time);
-                time -= (int)(interval_time / 1000);
-                this.game.SetTime("{0},{1}".Format(iplayer, time));
+        private void Timer(object start){
+            try{
+                lock (this.timerthread){
+                    int interval_time = 1000;
+                    int time = (int) start;
+                    int iplayer = this.game.GetWhoTurn();
+                    
+                    GameCollection.__default__.SetTimerStop(this.game.id, false);
+                    while(time > 0 && GameCollection.__default__.GetTimerStop(this.game.id) == false){
+                        Thread.Sleep(interval_time);
+                        time -= (int)(interval_time / 1000);
+                        this.game.SetTime("{0},{1}".Format(iplayer, time));
+                    }
+                    if (GameCollection.__default__.GetTimerStop(this.game.id) == false)
+                        this.Send(this, "Timeout:{0}".Format(iplayer));
+                }
             }
-            if (this.TimerStop == false)
-                this.Send(this, "Timeout:{0}".Format(iplayer));
+            catch(Exception e){
+                this.WriteLine(e.Message);
+            }
         }
-        private void StartTimer(){
+        private void StartTimer(int start = Game.TIMEOUT){
+            if (GameCollection.__default__.GetServer(this.game.id) != Program.socket){
+                GameCollection.__default__.SetTimerStart(this.game.id, true);
+                return;
+            }
+
+            this.timerthread = new Thread(this.Timer);
+            this.timerthread.Start(start);
+        }
+        private void StopTimer(){
+            GameCollection.__default__.SetTimerStop(this.game.id, true);
+            try{
+                if (GameCollection.__default__.GetServer(this.game.id) != Program.socket)
+                    return;
+            }
+            catch{
+                // do nothing
+            }
+
+            while (this.timerthread != null && this.timerthread.IsAlive == true){
+                Thread.Sleep(300);
+                GameCollection.__default__.SetTimerStop(this.game.id, true);
+            }
+        }
+        private void WaitForContinueMainServer(){
+            try{
+                this.WaitContinueMainServerStop = false;
+                while(this.WaitContinueMainServerStop == false){
+                    Thread.Sleep(300);
+                    string server = GameCollection.__default__.GetServer(this.game.id);
+                    if (Program.socket != server || this.oldserver == server)
+                        continue;
+
+                    this.oldserver = server;
+                    string content = GameCollection.__default__.GetTime(this.game.id);
+                    int remaintime = Int32.Parse(content.Split(',')[1]);
+                    this.StartTimer(remaintime);
+                    this.StartWaitStartTimer(); // restart
+                }
+            }
+            catch(Exception e){
+                this.WriteLine(e.Message);
+                return;
+            }
+        }
+        private void StartWaitForContinueMainServer(){
+            this.WaitContinueMainServerThread = new Thread(this.WaitForContinueMainServer);
+            this.WaitContinueMainServerThread.Start();
+        }
+        private void StopWaitForContinueMainServer(){
+            this.WaitContinueMainServerStop = true;
+            while(this.WaitContinueMainServerThread != null &&
+             this.WaitContinueMainServerThread.IsAlive == true){
+                Thread.Sleep(300);
+            }
+        }
+        private void WaitForStartTimer(){
+            try{
+                this.WaitStartTimerStop = false;
+                while(this.WaitStartTimerStop == false){
+                    Thread.Sleep(200);
+                    bool timerstart = GameCollection.__default__.GetTimerStart(this.game.id);
+                    if (timerstart == true){
+                        GameCollection.__default__.SetTimerStart(this.game.id, false);
+                        this.StopTimer();
+                        this.StartTimer();
+                    }
+                }
+            }
+            catch(Exception e){
+                this.WriteLine(e.Message);
+            }
+        }
+        private void StartWaitStartTimer(){
             if (GameCollection.__default__.GetServer(this.game.id) != Program.socket)
                 return;
 
-            this.StopTimer();
-            this.timerthread = new Thread(this.Timer);
-            this.timerthread.Start();
+            this.WaitStartTimerThread = new Thread(this.WaitForStartTimer);
+            this.WaitStartTimerThread.Start();
         }
-        private void StopTimer(){
-            if (GameCollection.__default__.GetServer(this.game.id) != Program.socket)
-                return;
-            
-            this.TimerStop = true;
-            while (this.timerthread != null && this.timerthread.IsAlive == true){
+        private void StopWaitStartTimer(){
+            try{
+                if (GameCollection.__default__.GetServer(this.game.id) != Program.socket)
+                    return;
+            }
+            catch{
+                // do nothing
+            }
+
+            this.WaitStartTimerStop = true;
+            while(this.WaitStartTimerThread != null && this.WaitStartTimerThread.IsAlive == true){
                 Thread.Sleep(300);
-                this.TimerStop = true;
             }
         }
         private void WaitForTimer(){
+            try{
             this.WaitTimerStop = false;
             while(this.WaitTimerStop == false){
                 Thread.Sleep(200);
@@ -88,6 +181,10 @@ namespace Server{
                     this.oldtime = timestatus;
                     this.Send(this, "Time:{0}".Format(timestatus));
                 }
+            }
+            }
+            catch(Exception e){
+                this.WriteLine(e.Message);
             }
         }
         private void StartWaitForTimer(){
@@ -102,44 +199,99 @@ namespace Server{
             }
         }
         private void WaitForGameInfo(){
-            this.WaitGameInfoStop = false;
-            while( this.WaitGameInfoStop == false){
-                string content = GameCollection.__default__.GetGameInfo(this.game.id, 0);
+            try{
+                this.WaitGameInfoStop = false;
+                while( this.WaitGameInfoStop == false){
+                    Thread.Sleep(300);
+                    string content = this.GetGameInfo(0);
+                    if (content == this.oldstatus)
+                        continue;
+
+                    this.UpdateForClients();
+                }
+            }
+            catch(Exception e){
+                this.WriteLine(e.Message);
             }
         }
-        private void WaitForAI(){
-            this.AIStop = false;
-            int index = -1;
-            while (this.AIStop == false){
-                while (this.game.GetStatus(this.game.GetWhoTurn()) != Room.AI 
-                && this.game.GetStatus(this.game.GetWhoTurn()) != Room.AFK
-                && this.AIStop == false){
-                    Thread.Sleep(300);
-                    if (this.game.GetWhoTurn() != index)
-                        index = -1;
-                }
-
-                if (this.AIStop == true ||  this.game.GetEndGameSignal())
-                    break;
-                
-                if (this.game.GetWhoTurn() == index)
-                    continue;
-
-                index = this.game.GetWhoTurn();               
-
-                if (this.game.GetStatus(index) == Room.AI){
-                    try{
-                        CardSet cardset = this.game.GetMoveFromAI();
-                        this.Send(this, "AIPlay:{0},{1}".Format(index, cardset.ToString(sum:false)));
-                    }
-                    catch{
-                        this.Send(this, "AIPlay:{0}".Format(index));
-                    }
-                }
-                else if (this.game.GetStatus(index) == Room.AFK){
-                    this.Send(this, "AutoPass:{0}".Format(index));
-                }
+        private void StartWaitForGameInfo(){
+            this.WaitGameInfoThread = new Thread(this.WaitForGameInfo);
+            this.WaitGameInfoThread.Start();
+        }
+        private void StopWaitForGameInfo(){
+            this.WaitGameInfoStop = true;
+            while (this.WaitGameInfoThread != null && this.WaitTimerThread.IsAlive == true){
                 Thread.Sleep(300);
+            }
+        }
+        private void WaitForPlayingCard(){
+            try{
+                this.WaitPlayingCardStop = false;
+                while( this.WaitPlayingCardStop == false){
+                    Thread.Sleep(300);
+                    string content = GameCollection.__default__.GetPlayingCard(this.game.id);
+                    if (content == this.oldplayingcard || content == "")
+                        continue;
+
+                    this.UpdatePlayingCardForClients(content);
+                }
+            }
+            catch(Exception e){
+                this.WriteLine(e.Message);
+            }
+        }
+        private void StartWaitForPlayingCard(){
+            this.WaitPlayingCardThread = new Thread(this.WaitForPlayingCard);
+            this.WaitPlayingCardThread.Start();
+        }
+        private void StopWaitForPlayingCard(){
+            this.WaitPlayingCardStop = true;
+            while (this.WaitPlayingCardThread != null && this.WaitPlayingCardThread.IsAlive == true){
+                Thread.Sleep(300);
+            } 
+        }
+        private void WaitForAI(){
+            try{
+                this.AIStop = false;
+                int index = -1;
+                while (this.AIStop == false){
+                    while (
+                        (
+                            this.game.GetStatus(this.game.GetWhoTurn()) != Room.AI 
+                            && this.game.GetStatus(this.game.GetWhoTurn()) != Room.AFK
+                            && this.AIStop == false
+                        ) 
+                    || GameCollection.__default__.GetServer(this.game.id) != Program.socket){
+                        Thread.Sleep(300);
+                        if (this.game.GetWhoTurn() != index)
+                            index = -1;
+                    }
+
+                    if (this.AIStop == true ||  this.game.GetEndGameSignal())
+                        break;
+                    
+                    if (this.game.GetWhoTurn() == index)
+                        continue;
+
+                    index = this.game.GetWhoTurn();               
+
+                    if (this.game.GetStatus(index) == Room.AI){
+                        try{
+                            CardSet cardset = this.game.GetMoveFromAI();
+                            this.Send(this, "AIPlay:{0},{1}".Format(index, cardset.ToString(sum:false)));
+                        }
+                        catch{
+                            this.Send(this, "AIPlay:{0}".Format(index));
+                        }
+                    }
+                    else if (this.game.GetStatus(index) == Room.AFK){
+                        this.Send(this, "AutoPass:{0}".Format(index));
+                    }
+                    Thread.Sleep(300);
+                }
+            }
+            catch(Exception e){
+                this.WriteLine(e.Message);
             }
         }
         private void StartWaitForAI(){
@@ -331,6 +483,7 @@ namespace Server{
                         this.WriteLine("This is turn of {0} but {1}".Format(this.game.GetWhoTurn(), iplayer));
                         return;
                     }
+                
 
                     if (remaintime < 0 || remaintime > Game.TIMEOUT){
                         this.WriteLine("Time is out of range");
@@ -400,7 +553,7 @@ namespace Server{
         }
         private void Timeout(int index){
             lock(this){
-                if (this.clientsessions[index] == null){
+                if (this.game.GetAllCardSets()[index] == null){
                     this.WriteLine("This client is not exist in game");
                     return;
                 }
@@ -435,14 +588,20 @@ namespace Server{
             
 
             if (moveset != null)
-                this.UpdatePlayingCardForClients(index, moveset.ToString());
+                GameCollection.__default__.SetPlayingCard(
+                    this.game.id, 
+                    index, 
+                    CardSet.Create(moveset.Split(","), "list")
+                );
+            else
+                GameCollection.__default__.SetPlayingCard(this.game.id, index, null);
 
             if (ret != null){
                 int[] coef_money = ret.ToArray().Take(0, - 2);
                 this.UpdateMoneyForClients(coef_money); 
             }
 
-            this.UpdateForClients();
+            //this.UpdateForClients();
                     
             if (ret != null && ret.Last() != -1){
                 this.StopWaitForAI();
@@ -451,7 +610,10 @@ namespace Server{
             else
                 this.StartTimer();
         }
-        public void UpdatePlayingCardForClients(int index, string PlayingCard){
+        public void UpdatePlayingCardForClients(string PlayingCard){
+            this.oldplayingcard = PlayingCard;
+            int index = Int32.Parse(PlayingCard.Split(',')[0]);
+            PlayingCard = PlayingCard.Substring(2);
             for(int i = 0; i < this.clientsessions.Count(); i++)
                 if (this.clientsessions[i] != null){
                     int onturn = (4 + index - i) % 4;
@@ -502,14 +664,14 @@ namespace Server{
                             .Format(String.Join(',', updatemoney)));
                     }
                         
-                this.Send(this.room, "UpdateRoom");
             }
         }
         public void UpdateForClients(){
+            this.oldstatus = this.GetGameInfo(0);
             for(int i = 0; i < this.clientsessions.Count(); i++){
                 if (this.clientsessions[i] != null){
                     this.Send(clientsessions[i], "GameInfo:{0}"
-                        .Format(this.GameInfo(i) ) );
+                        .Format(this.GetGameInfo(i) ) );
                     this.Send(this.clientsessions[i], "OnTableInfo:{0}"
                         .Format(this.OnTableInfo()));
                 }
@@ -518,32 +680,30 @@ namespace Server{
         public override void Start(){
             this.UpdateForClients();
             base.Start();
-            
+    
             this.StartTimer();
-            
+            this.StartWaitStartTimer();
             this.StartWaitForAI();
             this.StartWaitForTimer();
+            this.StartWaitForGameInfo();
+            this.StartWaitForPlayingCard();
+            this.StartWaitForContinueMainServer();
         }
         public override void Stop(string mode = "normal"){
+            this.StopWaitForContinueMainServer();
             this.StopWaitForTimer();
-            
+            this.StopWaitForGameInfo();
             this.StopTimer();
-
+            this.StopWaitStartTimer();
             this.StopWaitForAI();
+            this.StopWaitForPlayingCard();
             base.Stop(mode);
         }
-        public void WriteLog(){
-            this.game.WriteLog();
-        }
-        public override void Destroy(string mode = "normal"){
-            this.WriteLog();
-            base.Destroy(mode);
-        }
-        public string GameInfo(int index){
-           return this.game.ToString(index);
+        public string GetGameInfo(int index){
+           return this.game.GetGameInfo(index);
         }
         public string OnTableInfo(){
-            return this.game.OnTableInfo();
+            return GameCollection.__default__.GetOnBoardSetsAsString(this.game.id);
         }
     }
 }

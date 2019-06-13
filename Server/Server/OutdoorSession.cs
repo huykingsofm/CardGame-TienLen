@@ -114,6 +114,56 @@ namespace Server{
                     }
                     break;
                 }
+                case "Restore":{
+                    int index = this.clientsessions.FindById(message.id);
+                    if (index == -1){
+                        this.WriteLine("JoinLobby must come from Client");
+                        return;
+                    }
+
+                    if  ( this.outdoor.clients[index].IsLogin() == false){
+                        this.Send(this.clientsessions[index], "Failure:Login,Please log in before");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 2){
+                        this.WriteLine("This message need 2 parameters");
+                        return;
+                    }
+
+                    string where = message.args[0];
+                    long id = Int64.Parse(message.args[1]);
+
+                    if (where == "lobby"){
+                        try{
+                            this.lobbysession.Add(this.clientsessions[index]);
+                            this.clientsessions[index].Join(this.lobbysession);
+                            this.Remove(this.clientsessions[index], forever:false);
+                        }
+                        catch(Exception e){
+                            this.WriteLine(e.Message);
+                            this.Send(this.clientsessions[index], "Failure:Login,{0}".Format(e.Message));
+                            return;
+                        }
+                    }
+                    else if (where == "room" || where == "game"){
+                        try{
+                            string username = this.clientsessions[index].client.user.username;
+                            this.lobbysession.Add(this.clientsessions[index]);
+                            this.clientsessions[index].Join(this.lobbysession);
+                            this.Remove(this.clientsessions[index], forever:false);
+                            this.Send(this.lobbysession, "Restore:{0},{1}"
+                                .Format(username, id));
+                        }
+                        catch(Exception e){
+                            this.WriteLine(e.Message);
+                            this.Send(this.clientsessions[index], "Failure:Login,{0}".Format(e.Message));
+                            return;
+                        }
+                    }
+                    
+                    break;
+                }
                 default:{
                     this.WriteLine("Cannot identify message");
                     break;

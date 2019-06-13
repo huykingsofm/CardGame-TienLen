@@ -110,7 +110,7 @@ namespace Server{
         }
         public abstract void Solve(object message);
         protected string DefaultFormat(){
-            return "{0}-{1}={2}".Format(this.Name, "{0}", "{1}");
+            return "{0}*{1}={2}".Format(this.Name, "{0}", "{1}");
         }
         private void SolvingThread(){
             this.stop = false;

@@ -19,7 +19,7 @@ namespace Server{
             if (tmp.Count() == 2){
                 this.who = tmp[0];
                 next = tmp[1];
-                tmp = this.who.Split('-');
+                tmp = this.who.Split('*');
                 if (tmp.Count() == 2){
                     this.which = tmp[0];
                     this.id = Int32.Parse(tmp[1]);

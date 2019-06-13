@@ -134,7 +134,7 @@ namespace Server{
                 throw new Exception("Outdoor is no more empty slot");
 
                 this.clients[this.LastSlot] = client;
-                this.WriteLine("Client enter to slot {0}", this.LastSlot);
+                this.WriteLine("Client enter to slot {0}", this.LastSlot); 
                 return this.LastSlot;
             }
         }

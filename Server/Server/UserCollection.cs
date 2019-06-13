@@ -162,7 +162,7 @@ namespace Server
                 username
             );
 
-            string newtoken = Utils.HashMd5(hasedpw + client.socket.GetIP());
+            string newtoken = username + client.socket.GetIP();
             if (token != newtoken)
                 throw new Exception("Your token is invalid");
             

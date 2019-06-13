@@ -151,6 +151,7 @@ namespace Server{
                     try{
                         ClientSession user = (ClientSession)this.clientsessions.GetById(message.id);
                         this.Remove(user);
+                        StatesCollection.__default__.Change(user.client.user.username, "nowhere", 0); 
                         user.Logout();
                         this.outdoorsession.Add(user);
                         user.Join(this.outdoorsession);
@@ -177,6 +178,7 @@ namespace Server{
                     this.Remove(client);
                     client.Join(this.outdoorsession);
                     this.outdoorsession.Add(client);
+
                     break;
                 }
                 case "UpdateLobby":{
@@ -248,6 +250,43 @@ namespace Server{
                         .Format(RoomCollection.__default__.GetLobbyInfo(this.lobby.id)));
                     break;
                 }
+                case "Restore":{
+                    if (message.id != this.outdoorsession.id){
+                        this.WriteLine("Message must come from outdoor");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 2){
+                        this.WriteLine("Message need 2 parameters");
+                        return;
+                    }
+
+                    string username = message.args[0];
+                    long id = Int64.Parse(message.args[1]);
+
+                    ClientSession user = null;
+                    RoomSession room = null;
+                    try{    
+                        for(int i = 0; i < this.clientsessions.Count(); i++)
+                            if (this.clientsessions[i] != null && 
+                            this.clientsessions[i].client.user.username == username)
+                                user = this.clientsessions[i];
+                                
+                        room = this.roomsessions[id];
+                        room.Add(user);
+                        user.Join(room);
+                        this.Remove(user);
+                    }
+                    catch(Exception e){
+                        this.WriteLine(e.Message);
+                        this.Send(user, "Failure:JoinRoom,{0}".Format(e.Message));
+                        return;
+                    }
+  
+                    //LobbyCollection.__default__.Change(this.lobby.id, this.ToString());
+                    this.UpdateForClients();
+                    break;
+                }
                 default:{
                     this.WriteLine("Cannot identify message");
                     break;
@@ -268,7 +307,7 @@ namespace Server{
                 if (client != null)
                     this.Send(client, "LobbyInfo:{0}".Format(oldstatus));
         }
-        public void Add(ClientSession usersession){
+        public void Add(ClientSession usersession, bool notify = true){
             if (usersession.client.IsAlive() == false 
             || usersession.client.IsLogin() == false){
                 this.outdoorsession.Add(usersession);
@@ -278,7 +317,8 @@ namespace Server{
 
             int index = this.lobby.Add(usersession.client.user.username);
             this.clientsessions[index] = usersession;
-            this.Send(usersession, "LobbyInfo:{0}".Format(this));
+            if (notify)
+                this.Send(usersession, "LobbyInfo:{0}".Format(this));
         }
         public void Remove(ClientSession usersession){
             int index = this.lobby.Remove(usersession.client.user.username);

@@ -16,6 +16,7 @@ namespace Server{
         private Thread WaitGameThread;
         private bool WaitGameStop;
         private string oldstatus;
+        private bool oldgamestatus = false;
         public RoomSession(Room room, LobbySession lobbysession) : base(){
             this.room = room;
             this.lobbysession = lobbysession;
@@ -47,10 +48,15 @@ namespace Server{
             this.WaitGameStop = false;
             while(this.WaitGameStop == false){
                 Thread.Sleep(300);
-                if (this.gamesession != null || this.room.GameExist() == false)
+                bool gamestatus = this.room.GameExist();
+                if (this.oldgamestatus == gamestatus)
                     continue;
 
-                this.Send(this, "CreateGame");
+                if (gamestatus == true)  
+                    this.Send(this, "CreateGame");
+                else
+                    this.Send(this, "RemoveGame");
+                this.oldgamestatus = gamestatus;
             }
         }
         private void StartWaitForStartGame(){
@@ -143,9 +149,15 @@ namespace Server{
                     ClientSession clientsession = (ClientSession) this.clientsessions.GetById(message.id);
                     int index = this.clientsessions.FindById(message.id);
                     if (index != this.room.GetHost()){
-                        this.Send(clientsession, "Failure:StartGame,You must be the host to start game");
+                        this.Send(clientsession, "Failure:Start,You must be the host to start game");
                         return;
                     }
+
+                    if (this.room.GetRoomStatus() == Room.ROOM_PLAYING){
+                        this.Send(clientsession, "Failure:Start,Game has ready started");
+                        return;
+                    }
+
                     try{
                         this.room.StartGame();
                     }
@@ -155,7 +167,7 @@ namespace Server{
                     }
 
                     this.Send(clientsession, "Success:Start");
-                    RoomCollection.__default__.AddGame(this.room.id);
+                    RoomCollection.__default__.SetGame(this.room.id, true);
                     break;
                 }
                 case "CreateGame":{
@@ -171,6 +183,19 @@ namespace Server{
                             client.Join(gamesession);
                     this.gamesession.Start();
                     
+                    break;
+                }
+                case "RemoveGame":{    
+                    this.gamesession.Destroy();
+                    this.gamesession = null;
+                
+                    int winner = this.room.GetLastWinner();
+                    for (int i = 0; i < this.clientsessions.Count(); i++)
+                        if (this.clientsessions[i] != null){
+                            int dummywinner = (4 + winner - i) % 4;
+                            this.Send(this.clientsessions[i], "GameFinished:{0}".Format(dummywinner));
+                            this.clientsessions[i].Join((GameSession) null);
+                        }
                     break;
                 }
                 case "BetMoney":{
@@ -206,7 +231,6 @@ namespace Server{
                     }
                     this.Send(clientsession, "Success:BetMoney");
                     this.Send(this.lobbysession, "UpdateLobby");
-                    this.UpdateRoomForClients();
                     break;
                 }
                 case "Logout":{
@@ -251,8 +275,8 @@ namespace Server{
                     }
 
                     this.Remove(client);
-                    this.lobbysession.Add(client);
                     client.Join(this.lobbysession);
+                    this.lobbysession.Add(client);
                     this.Send(this.lobbysession, "UpdateLobby");
                     break;
                 }
@@ -280,10 +304,9 @@ namespace Server{
                         return;
                     }
 
-                    this.lobbysession.Add(client);
+                    this.lobbysession.Add(client, notify:false);
                     client.Join(this.lobbysession);
                     this.Remove(client);
-                    this.Send(this.lobbysession, "UpdateLobby");
                     break;
                 }
                 case "UpdateRoom":{
@@ -315,20 +338,9 @@ namespace Server{
                         this.WriteLine("Parameters is incorrect");
                         return;
                     }
-
-                    for (int i = 0; i < this.clientsessions.Count(); i++)
-                        if (this.clientsessions[i] != null){
-                            int dummywinner = (4 + winner - i) % 4;
-                            this.Send(this.clientsessions[i], "GameFinished:{0}".Format(dummywinner));
-                            this.clientsessions[i].Join((GameSession) null);
-                        }
-
+                    GameCollection.__default__.Remove(this.room.id);
                     this.room.StopGame(winner);
-                    this.room.Refresh();
-                    this.UpdateRoomForClients();
-                    this.Send(this.lobbysession, "UpdateLobby");
-                    this.gamesession.Destroy();
-                    this.gamesession = null;
+                    RoomCollection.__default__.SetGame(this.room.id, false);
                     break;
                 }
                 case "SetAI":{
@@ -361,7 +373,6 @@ namespace Server{
                         return;
                     }
                     this.Send(this.clientsessions[iplayer], "Success:SetAI,{0}".Format(index));
-                    this.UpdateRoomForClients();
                     break;
                 }
                 case "RemoveAI":{
@@ -393,7 +404,6 @@ namespace Server{
                         return;
                     }
                     this.Send(this.clientsessions[iplayer], "Success:RemoveAI,{0}".Format(index));
-                    this.UpdateRoomForClients();
                     break;
                 }
                 case "UpdateSelf":{
@@ -439,7 +449,7 @@ namespace Server{
                 throw new Exception("Client[{0}] do not exist in room".Format(index));
 
             this.Send(this.clientsessions[index], "GameInfo:{0}"
-                .Format(this.gamesession.GameInfo(index)));
+                .Format(this.gamesession.GetGameInfo(index)));
             this.Send(this.clientsessions[index], "OnTableInfo:{0}"
                 .Format(this.gamesession.OnTableInfo()));
         }
@@ -451,7 +461,7 @@ namespace Server{
             if (this.gamesession != null)
                 client.Join(this.gamesession);
 
-            this.UpdateRoomForClients();
+            //this.UpdateRoomForClients();
             if (this.gamesession != null)
                 this.UpdateGameForClient(index);
         }

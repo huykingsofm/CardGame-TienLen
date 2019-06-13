@@ -597,6 +597,47 @@ namespace Server{
                     this.Send(this.outdoorsession, "JoinLobby");
                     break;
                 }
+                case "Restore":{
+                    if (message.id != this.id){
+                        this.WriteLine("This message must come from Client");
+                        return;
+                    }
+
+                    if (message.args == null || message.args.Count() != 1){
+                        this.WriteLine("This message must have a parameters");
+                        return;
+                    }
+
+                    if (this.client.IsLogin()){
+                        this.client.Send("Failure:Login,You have already logged in!");
+                        return;
+                    }
+
+                    long id = 0;
+                    string token = message.args[0];
+                    string username = TokenCollection.__default__.GetUsername(token);
+
+                    string where = StatesCollection.__default__.Where(username, out id);
+                    
+                    if (where == "nowhere"){
+                        this.client.Send("Failure:Nowhere to go. You are in outdoor now");
+                        return;
+                    }
+                    
+                    try{
+                        this.client.user = User.AuthenticateByToken(token, this.client);
+                    }
+
+                    catch(Exception e){
+                        this.client.Send("Failure:Restore,{0}".Format(e.Message));
+                        return;
+                    }
+
+
+                    this.Send(this.outdoorsession, "Restore:{0},{1}".Format(where, id));              
+
+                    break;
+                }
                 default:{
                     this.WriteLine("Cannot identify message!");
                     break;

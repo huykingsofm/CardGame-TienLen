@@ -26,8 +26,7 @@ namespace Server
 
 
         // - - - - - - CONSTRUCTOR - - - - - - 
-        public Move(CardSet moveset)
-        {
+        public Move(CardSet moveset){
             this.moveset = moveset;
 
             this.status = -1;
@@ -37,8 +36,7 @@ namespace Server
             this.SetupValues();
         }
 
-        public static Move Create(CardSet moveset)
-        {
+        public static Move Create(CardSet moveset){
             Move move = new Move(moveset);
             if (move.status == -1)
                 return null;
@@ -46,91 +44,75 @@ namespace Server
         }
 
         // - - - - - - METHOD - - - - - - - 
-        private void SetupStatus()
-        {
+        private void SetupStatus(){
             List<Card> list = this.moveset.ToList();
 
             // Kiểm tra nó có phải là lá đơn không
-            if (list.Count() == 1)
-            {
+            if (list.Count() == 1){
                 this.status = Server.Move.SINGLE;
                 return;
             }
 
             // Kiểm tra nó có phải là đôi không
-            if (list.Count() == 2)
-            {
-                if (list[0].number == list[1].number)
-                {
+            if (list.Count() == 2){
+                if (list[0].number == list[1].number){
                     this.status = Server.Move.DOUBLE;
                     return;
                 }
             }
 
             // Kiểm tra nó có phải là bộ ba không
-            if (list.Count() == 3)
-            {
+            if (list.Count() == 3){
                 if (list[0].number == list[1].number
-                    && list[1].number == list[2].number)
-                {
+                    && list[1].number == list[2].number){
                     this.status = Server.Move.TRIPLE;
                     return;
                 }
             }
 
             // Kiểm tra nó có phải là bộ tứ (tứ quý) không
-            if (list.Count() == 4)
-            {
+            if (list.Count() == 4){
                 if (list[0].number == list[1].number
                 && list[1].number == list[2].number
-                && list[2].number == list[3].number)
-                {
+                && list[2].number == list[3].number){
                     this.status = Server.Move.QUARTER;
                     return;
                 }
             }
 
             // Kiểm tra nó có phải là sảnh không
-            if (list.Count() >= 3)
-            {
+            if (list.Count() >= 3){
                 bool IsMulti = true;
 
-                for (int i = 1; i < list.Count(); i++)
-                {
-                    if (list[i].number != list[i - 1].number + 1
+                for (int i = 1; i < list.Count(); i++){
+                    if ((list[i].number == 2) || list[i].number != list[i - 1].number + 1
                         && (list[i].number != 1 || list[i - 1].number != 13) )
                         IsMulti = false;
                 }
 
-                if (IsMulti)
-                {
+                if (IsMulti){
                     this.status = Server.Move.MULTI;
                     return;
                 }
             }
 
             // Kiểm tra nó có phải là sảnh đôi (đôi thông) không
-            if (list.Count() >= 6 && list.Count() % 2 == 0)
-            {
+            if (list.Count() >= 6 && list.Count() % 2 == 0){
                 bool IsMultiDouble = true;
 
-                for (int i = 1; i < list.Count(); i++)
-                {
-                    if (i % 2 == 1)
-                    {
+                for (int i = 1; i < list.Count(); i++){
+                    if (i % 2 == 1){
                         if (list[i].number != list[i - 1].number)
                             IsMultiDouble = false;
                     }
-                    else
-                    {
-                        if (list[i].number != list[i - 1].number + 1
-                        && (list[i].number != 1 || list[i - 1].number != 13))
+                    else{
+                        if ((list[i].number == 2) || list[i].number != list[i - 1].number + 1
+                        || (list[i].number != 1 || list[i - 1].number != 13))
                             IsMultiDouble = false;
                     }
                 }
 
-                if (IsMultiDouble)
-                {
+                if (IsMultiDouble){
                     this.status = Server.Move.MULTI_DOUBLE;
                     return;
                 }
@@ -138,8 +120,7 @@ namespace Server
 
             this.status = -1;
         }
-        private void SetupValues()
-        {
+        private void SetupValues(){
             List<Card> list = this.moveset.ToList();
 
             if (this.status == Server.Move.SINGLE
@@ -161,8 +142,7 @@ namespace Server
                 // giá trị của nước đi này là giá trị của lá cuối cùng + số lượng lá
             }
         }
-        public int IsValid(Move prev)
-        {
+        public int IsValid(Move prev){
             /* 
             # Mục đích : Kiểm tra nước đi hiện tại có phù hợp với nước đi trước đó không
             # Trả về : + 0 --> không thể thực hiện
@@ -193,17 +173,14 @@ namespace Server
             Card thisValue = Card.Create(this.values[0]);
 
             //(2)
-            if (prev.status == Server.Move.SINGLE)
-            {
-                if (prevValue.number == 2)
-                { // Xử lý trường hợp lá 2 trước
+            if (prev.status == Server.Move.SINGLE){
+                if (prevValue.number == 2){ // Xử lý trường hợp lá 2 trước
                     if (this.status == Server.Move.QUARTER || this.status == Server.Move.MULTI_DOUBLE)
                         return 2;
                 }
 
                 // Xử lý tất cả trường hợp còn lại
-                if (this.status == Server.Move.SINGLE)
-                {
+                if (this.status == Server.Move.SINGLE){
                     if (this.values[0] > prev.values[0])
                         return 1;
                 }
@@ -212,8 +189,7 @@ namespace Server
             }
 
             //(3)
-            if (prev.status == Server.Move.DOUBLE)
-            {
+            if (prev.status == Server.Move.DOUBLE){
                 if (this.status == Server.Move.DOUBLE && this.values[0] > prev.values[0])
                     return 1;
 
@@ -221,8 +197,7 @@ namespace Server
             }
 
             //(4)
-            if (prev.status == Server.Move.TRIPLE)
-            {
+            if (prev.status == Server.Move.TRIPLE){
                 if (this.status == Server.Move.TRIPLE && this.values[0] > prev.values[0])
                     return 1;
 
@@ -231,8 +206,7 @@ namespace Server
 
 
             //(5)
-            if (prev.status == Server.Move.QUARTER)
-            {
+            if (prev.status == Server.Move.QUARTER){
                 if (this.status == Server.Move.QUARTER && this.values[0] > prev.values[0])
                     return 1;
 
@@ -241,8 +215,7 @@ namespace Server
 
 
             //(6)
-            if (prev.status == Server.Move.MULTI)
-            {
+            if (prev.status == Server.Move.MULTI){
                 if (this.status == Server.Move.MULTI
                 && this.values[0] > prev.values[0]
                 && this.values[1] == prev.values[1]) // Cùng số lá
@@ -252,11 +225,9 @@ namespace Server
             }
 
             //(7)
-            if (prev.status == Server.Move.MULTI_DOUBLE)
-            {
+            if (prev.status == Server.Move.MULTI_DOUBLE){
                 // Xử lý trường hợp bắt ba đôi thông (6 lá) bằng tứ quý
-                if (prev.values[1] == 6)
-                {
+                if (prev.values[1] == 6){
                     if (this.status == Server.Move.QUARTER)
                         return 3;
                 }
@@ -272,8 +243,7 @@ namespace Server
 
             return 0;
         }
-        public CardSet GetMoveSet()
-        {
+        public CardSet GetMoveSet(){
             return this.moveset.Clone();
         }
     }

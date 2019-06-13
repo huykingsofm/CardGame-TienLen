@@ -10,7 +10,6 @@ namespace Server
 {
     public class GameCollection
     {
-        public const string NO_ONE = "";
         const string default_serverpath = "mongodb://localhost:27017";
         const string default_dbname = "CardGame-TienLen";
         public static GameCollection __default__ = new GameCollection(default_serverpath, default_dbname);
@@ -62,7 +61,7 @@ namespace Server
                 
                 string[] cardcontents = new string[4];
                 for (int i =0; i < 4; i++)
-                    cardcontents[i] = cards[i] == null ? "" : cards[i].ToString(sum:false);
+                    cardcontents[i] = cards[i] == null ? "" : cards[i].ToString(sum:true);
 
                 BsonDocument newgame = new BsonDocument {
                         { "idgame", id },
@@ -80,9 +79,10 @@ namespace Server
                         { "onboardsets", "0"},
                         { "specialchain", 0},
                         { "endgamesignal", false},
-                        { "smallestcard", smallestcard.ToString()},
+                        { "smallestcard", smallestcard == null ? "" : smallestcard.ToString()},
                         { "time", ""},
                         { "timerstop", false},
+                        { "timerstart", false},
                         { "playingcard", ""},
                         { "timeout", false},
                         { "server", Program.socket}
@@ -91,26 +91,8 @@ namespace Server
                     this.collection.InsertOne(newgame);
             }
         }
-        public string[] Get(long id){
-            var query = Builders<BsonDocument>.Filter.Eq("idgame", id);
-            List<BsonDocument> result = this.collection.Find(query).ToList();
-
-            if (result.Count() == 1)
-            {
-                string[] key = new string[]{"player1", "player2", "player3", "player4"};
-                string[] ret = new string[4];
-                for (int i = 0; i < ret.Count(); i++)
-                    if (result[0][key[i]].AsString != null)
-                        ret[i] = result[0][key[i]].AsString;
-                return ret; 
-            }
-            else if (result.Count() == 0)
-                return null;
-
-            throw new Exception("Error in database");
-        }
         public int Where(long id, string username){
-            string[] ret = this.Get(id);
+            string[] ret = this.GetPlayerNames(id);
             for (int i = 0; i < ret.Count(); i++)
                 if (ret[i] == username)
                     return i;
@@ -145,6 +127,15 @@ namespace Server
 
             return result[0]["whoturn"].AsInt32;
         }
+        public string GetPlayingCard(long idgame){
+            var query = Builders<BsonDocument>.Filter.Eq("idgame", idgame);
+            List<BsonDocument> result = this.collection.Find(query).ToList();
+
+            if (result.Count() != 1)
+                throw new Exception("idroom is incorrect");
+
+            return result[0]["playingcard"].AsString;
+        }
         public CardSet GetCardSet(long idgame, int index){
             string[] c = new string[]{"card1", "card2", "card3", "card4"};
 
@@ -157,8 +148,10 @@ namespace Server
             string content = result[0][c[index]].AsString;
             if (content == "")
                 return null;
+            else if (content == "0")
+                return new CardSet();
 
-            CardSet card = CardSet.Create(content.Split(','), "list");
+            CardSet card = CardSet.Create(content.Split(',').Take(1, -1), "list");
             return card;
         }
         public CardSet GetInTurnCardSet(long idgame){
@@ -174,8 +167,10 @@ namespace Server
             string content = result[0][c[index]].AsString;
             if (content == "")
                 return null;
+            else if (content == "0")
+                return new CardSet();
 
-            CardSet card = CardSet.Create(content.Split(','), "list");
+            CardSet card = CardSet.Create(content.Split(',').Take(1, -1), "list");
             return card;
         }
         public bool GetEndGameSignal(long idgame){
@@ -228,6 +223,15 @@ namespace Server
 
             return result[0]["timerstop"].AsBoolean;
         }
+        public bool GetTimerStart(long idgame){
+            var query = Builders<BsonDocument>.Filter.Eq("idgame", idgame);
+            List<BsonDocument> result = this.collection.Find(query).ToList();
+
+            if (result.Count() != 1)
+                throw new Exception("idroom is incorrect");
+
+            return result[0]["timerstop"].AsBoolean; 
+        }
         public string GetServer(long idgame){
             var query = Builders<BsonDocument>.Filter.Eq("idgame", idgame);
             List<BsonDocument> result = this.collection.Find(query).ToList();
@@ -238,18 +242,7 @@ namespace Server
             return result[0]["server"].AsString;
         }
         public int[] GetAllPlayerStatus(long idgame){
-            var query = Builders<BsonDocument>.Filter.Eq("idgame", idgame);
-            List<BsonDocument> result = this.collection.Find(query).ToList();
-
-            int[] playerstatus = new int[4];
-
-            if (result.Count() != 1)
-                throw new Exception("idroom is incorrect");
-
-            for (int i = 1; i <= 4; i++)
-                playerstatus[i - 1] = result[0]["status" + i].AsInt32;
-
-            return playerstatus;
+            return RoomCollection.__default__.GetAllPlayerStatus(idgame);
         }
         public int GetLastPlayer(long idgame){
             var query = Builders<BsonDocument>.Filter.Eq("idgame", idgame);
@@ -304,7 +297,7 @@ namespace Server
                 if (content == "")
                     cardsets[i] = null;
                 else
-                    cardsets[i] = CardSet.Create(content.Split(','), "list");
+                    cardsets[i] = CardSet.Create(content.Split(',').Take(1, -1), "list");
             }
             return cardsets;
         }
@@ -320,12 +313,22 @@ namespace Server
             string[] args = content.Split(',');
             int start = 1;
             for (int i = 0; i < Int32.Parse(args[0]); i++){
-                string[] cardstr = args.Take(start + 1, Int32.Parse(args[start]));
+                string[] cardstr = args.Take(start + 1, start + Int32.Parse(args[start]));
                 CardSet tmp = CardSet.Create(cardstr, "list");
                 start += Int32.Parse(args[start]) + 1;
                 onboardset.Add(tmp);
             }
             return onboardset;
+        }
+        public string GetOnBoardSetsAsString(long idgame){
+            var query = Builders<BsonDocument>.Filter.Eq("idgame", idgame);
+            List<BsonDocument> result = this.collection.Find(query).ToList();
+
+            if (result.Count() != 1)
+                throw new Exception("idroom is incorrect");
+            
+            string content = result[0]["onboardsets"].AsString;
+            return content;
         }
         public string GetGameInfo(long idgame, int view){
             if (view < 0 || view > 4)
@@ -379,7 +382,7 @@ namespace Server
 
             int whoturn = result[0]["whoturn"].AsInt32;
 
-            string content = newcardset == null ? "" : newcardset.ToString(sum:false);
+            string content = newcardset == null ? "" : newcardset.ToString(sum:true);
 
             var update = Builders<BsonDocument>.Update
                 .Set(c[whoturn], content);
@@ -449,6 +452,23 @@ namespace Server
         var query = Builders<BsonDocument>.Filter.Eq("idgame", idgame);
             var update = Builders<BsonDocument>.Update
                 .Set("timerstop", stop);
+            
+            this.collection.UpdateOne(query, update);
+        }
+        public void SetTimerStart(long idgame, bool start){
+        var query = Builders<BsonDocument>.Filter.Eq("idgame", idgame);
+            var update = Builders<BsonDocument>.Update
+                .Set("timerstart", start);
+            
+            this.collection.UpdateOne(query, update);
+        }
+        public void SetPlayingCard(long idgame, int index, CardSet playingcard){
+            var query = Builders<BsonDocument>.Filter.Eq("idgame", idgame);
+            string content = playingcard == null ? 
+                "" : 
+                "{0},{1}".Format(index, playingcard.ToString(sum:false));
+            var update = Builders<BsonDocument>.Update
+                .Set("playingcard", content);
             
             this.collection.UpdateOne(query, update);
         }

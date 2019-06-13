@@ -64,17 +64,10 @@ namespace Server
             lock(this){
                 if (this.IsExist(username) == false){
                     // Không tồn tại {username} trong database
-                    JsonValue jsv = null;
-                    using(var f = new JsonReader("server.ini")){
-                        jsv = f.Read();
-                    }
-                    string IP = jsv["IP"];
-                    int Port = jsv["Port"];
-                    string where = IP + ":" + Port;
                     BsonDocument newtoken = new BsonDocument {
                         { "username", username },
                         { "status", status},
-                        { "where", where}
+                        { "where", Program.socket}
                     };
                     
                     this.collection.InsertOne(newtoken);
@@ -84,7 +77,8 @@ namespace Server
                 // Đã tồn tại {username} trong database, chỉ cần cập nhật
                 var query = Builders<BsonDocument>.Filter.Eq("username", username);
                 var update = Builders<BsonDocument>.Update
-                    .Set("status", status);
+                    .Set("status", status)
+                    .Set("where", Program.socket);
 
                 this.collection.UpdateOne(query, update);
             }
