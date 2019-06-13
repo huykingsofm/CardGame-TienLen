@@ -18,7 +18,7 @@
     > * Hiển thị những bộ bài đã đánh ra trên bàn, chỉ có thông tin những bộ bài đang ngửa trên bàn, thông tin những bộ bài đã úp lại (đã qua lượt) sẽ không được gửi về.  
     > * *<thông tin bộ bài i>* có dạng giống ***[2]***
 
-* *Play:<chỉ số người đánh>,<lá bài 1>,<lá bài 2>,...*
+* *PlayingCard:<chỉ số người đánh>,<lá bài 1>,<lá bài 2>,...*
     > * Hiển thị hiệu ứng một người chơi đang đánh bài.
     > * *<chỉ số người đánh>* vẫn là 
     >   * 0 - bản thân
@@ -29,7 +29,7 @@
 * *UpdateMoney:<số tiền bị thay đổi 0>,<số tiền bị thay đổi 1>,...,<số tiền bị thay đổi 3>*
     > * Hiển thị hiệu ứng số tiền của các người chơi bị thay đổi (không cần hiển thị số tiền sau thay đổi)
     > * *<số tiền bị thay đổi i>* áp dụng cho người thứ i. Cách đánh chỉ số cho người chơi vẫn áp dụng như trên.
-* *GameFished:<chỉ số người thắng>*
+* *GameFinished:<chỉ số người thắng>*
     > * Hiển thị người chiến thắng, đồng thời loại bỏ hình ảnh của các bộ bài trên bàn, kết thúc game.
     > * *<chỉ số người thắng>* vẫn được áp dụng dựa trên cách đánh chỉ số cho người chơi.
 * *Success:Play*
