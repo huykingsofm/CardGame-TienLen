@@ -370,6 +370,7 @@ namespace Server{
             this.clientsessions[index] = client;
             this.Send(client, "Success:JoinRoom");
             this.UpdateRoomForClients();
+            client.Join(this.gamesession);
             if (this.gamesession != null)
                 this.UpdateGameForClient(index);
         }

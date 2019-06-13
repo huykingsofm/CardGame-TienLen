@@ -125,7 +125,7 @@ namespace Server{
 
             if (this.outdoorsession != null && this.outdoorsession.id == message.id)
                 bValid = true;
-
+            
             if (bValid == false){
                 this.WriteLine("Cannot identify message!");
                 return;

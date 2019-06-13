@@ -111,8 +111,8 @@ namespace Server{
 
             lock(this.clients){
                 if (this.PlayerStatus[index] == Room.PLAYING){
-                    int changeMoney = this.game.AFK(player) * this.BetMoney;
-                    player.user.ChangeMoney(- changeMoney);
+                    //int changeMoney = this.game.AFK(player) * this.BetMoney;
+                    //player.user.ChangeMoney(- changeMoney);
                     this.PlayerStatus[index] = Room.AFK;
                 }
                 else
