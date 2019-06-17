@@ -1,5 +1,5 @@
 # CARD GAME - TIẾN LÊN
-This is not a procdution
+This is not a production
 ## Authors
 > Lê Ngọc Huy  
 > University of Information Technology - SID 17520074  
